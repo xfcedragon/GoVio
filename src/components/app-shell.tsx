@@ -8,6 +8,7 @@ import {
   Receipt,
   Route,
   Settings,
+  Timer,
 } from "lucide-react"
 import {
   BillDialog,
@@ -22,6 +23,7 @@ import { cn } from "@/lib/utils"
 const NAV = [
   { href: "/", label: "Overview", short: "Overview", icon: LayoutDashboard },
   { href: "/shifts", label: "Shifts", short: "Shifts", icon: Route },
+  { href: "/hourly", label: "Hourly Earnings", short: "Hourly", icon: Timer },
   { href: "/fuel", label: "Fuel", short: "Fuel", icon: Fuel },
   { href: "/bills", label: "Bills & Goals", short: "Bills", icon: Receipt },
   { href: "/settings", label: "Settings", short: "Settings", icon: Settings },
