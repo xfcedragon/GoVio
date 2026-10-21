@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     template: "%s · SkipPilot",
   },
   description:
-    "A private earnings ledger for SkipTheDishes drivers in Canada. Shifts, fuel, and bills stay in this browser.",
+    "A private earnings ledger for SkipTheDishes drivers in Canada. Shifts, fuel, bills, and vehicle records stay in this browser.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

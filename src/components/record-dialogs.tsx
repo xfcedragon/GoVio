@@ -17,7 +17,8 @@ import { formatCad, formatHours } from "@/lib/format"
 import { shiftHours } from "@/lib/metrics"
 import { parseDecimal, parseOptionalInteger } from "@/lib/parse"
 import { useSkipPilot } from "@/lib/store"
-import { BILL_CATEGORIES, type Bill, type BillCategory, type FuelFill, type Shift } from "@/lib/types"
+import { BILL_CATEGORIES, DEFAULT_PLATFORM, TRIP_PURPOSES, type Bill, type BillCategory, type FuelFill, type Shift, type TripPurpose } from "@/lib/types"
+import { findOverlaps, resolveTripKilometres, type SpanRecord } from "@/lib/vehicle"
 
 function newId() {
   return crypto.randomUUID()
@@ -49,6 +50,8 @@ function ShiftForm({
   onCancel: () => void
   onSave: (shift: Shift) => void
 }) {
+  const { data } = useSkipPilot()
+  const onlyVehicle = data.vehicles.length === 1 ? data.vehicles[0] : null
   const [date, setDate] = useState(existing?.date ?? today)
   const [start, setStart] = useState(existing?.start ?? "")
   const [end, setEnd] = useState(existing?.end ?? "")
@@ -57,8 +60,28 @@ function ShiftForm({
   const [orders, setOrders] = useState(existing?.orders === null || !existing ? "" : String(existing.orders))
   const [area, setArea] = useState(existing?.area ?? "")
   const [note, setNote] = useState(existing?.note ?? "")
+  const [platform, setPlatform] = useState(existing?.platform?.trim() || data.settings.defaultPlatform || DEFAULT_PLATFORM)
+  const [purpose, setPurpose] = useState<TripPurpose>(existing?.purpose ?? "unclassified")
+  const [businessKm, setBusinessKm] = useState(
+    existing?.businessKilometres === null || existing?.businessKilometres === undefined ? "" : String(existing.businessKilometres),
+  )
+  const [businessPurpose, setBusinessPurpose] = useState(existing?.businessPurpose ?? "")
+  const [startOdometer, setStartOdometer] = useState(
+    existing?.startOdometer === null || existing?.startOdometer === undefined ? "" : String(existing.startOdometer),
+  )
+  const [endOdometer, setEndOdometer] = useState(
+    existing?.endOdometer === null || existing?.endOdometer === undefined ? "" : String(existing.endOdometer),
+  )
+  const [vehicleId, setVehicleId] = useState(existing?.vehicleId ?? onlyVehicle?.id ?? "")
+  const [evidenceId, setEvidenceId] = useState(existing?.evidenceId ?? "")
+  const [distanceAck, setDistanceAck] = useState(false)
+  const [overlapAck, setOverlapAck] = useState(existing?.overlapAcknowledged ?? false)
+  const [logOpen, setLogOpen] = useState(
+    Boolean(existing?.startOdometer || existing?.endOdometer || (existing?.purpose && existing.purpose !== "unclassified")),
+  )
   const [errors, setErrors] = useState<Record<string, string>>({})
   const hoursPreview = isClock(start) && isClock(end) ? formatHours(shiftHours(start, end)) : null
+  const linkedVehicle = vehicleId || onlyVehicle?.id || null
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -75,18 +98,111 @@ function ShiftForm({
     const orderCount = parseOptionalInteger(orders)
     if (orderCount === undefined) next.orders = "Orders should be a whole number, or left blank."
     else if (orderCount !== null && orderCount > 500) next.orders = "Enter the orders for this shift only."
+    const startReading = parseOptionalInteger(startOdometer)
+    const endReading = parseOptionalInteger(endOdometer)
+    if (startReading === undefined) next.startOdometer = "Starting odometer should be a whole number, or left blank."
+    if (endReading === undefined) next.endOdometer = "Ending odometer should be a whole number, or left blank."
+    let kilometresToSave = distance
+    if (startReading !== undefined && endReading !== undefined && startReading !== null && endReading !== null && distance !== null) {
+      const resolved = resolveTripKilometres({
+        startOdometer: startReading,
+        endOdometer: endReading,
+        enteredKilometres: distance,
+      })
+      if (resolved.rejected) next.odometer = resolved.rejected
+      else if (resolved.kilometres !== null) {
+        kilometresToSave = resolved.kilometres
+        if (resolved.warning && !distanceAck) {
+          next.distanceAck = `${resolved.warning} Confirm below to save the odometer difference.`
+        }
+      }
+    }
+    let businessKilometres: number | null = null
+    if (purpose === "mixed") {
+      const portion = parseDecimal(businessKm, 1)
+      if (portion === null) next.businessKm = "Enter the business kilometres for this mixed shift."
+      else if (kilometresToSave !== null && portion > kilometresToSave) next.businessKm = "Business kilometres cannot exceed the trip."
+      else businessKilometres = portion
+    }
+    const id = existing?.id ?? newId()
+    const candidate: SpanRecord = {
+      id,
+      vehicleId: linkedVehicle,
+      date,
+      startOdometer: startReading === undefined ? null : startReading,
+      endOdometer: endReading === undefined ? null : endReading,
+      shiftId: null,
+      isShift: true,
+      overlapAcknowledged: overlapAck,
+      businessKm: 0,
+      recordedKm: kilometresToSave ?? 0,
+    }
+    const others: SpanRecord[] = [
+      ...data.shifts
+        .filter((shift) => shift.id !== id)
+        .map((shift) => ({
+          id: shift.id,
+          vehicleId: shift.vehicleId ?? null,
+          date: shift.date,
+          startOdometer: shift.startOdometer ?? null,
+          endOdometer: shift.endOdometer ?? null,
+          shiftId: null,
+          isShift: true,
+          overlapAcknowledged: shift.overlapAcknowledged === true,
+          businessKm: 0,
+          recordedKm: shift.kilometres,
+        })),
+      ...data.mileage.map((entry) => ({
+        id: entry.id,
+        vehicleId: entry.vehicleId,
+        date: entry.date,
+        startOdometer: entry.startOdometer,
+        endOdometer: entry.endOdometer,
+        shiftId: entry.shiftId,
+        isShift: false,
+        overlapAcknowledged: entry.overlapAcknowledged,
+        businessKm: 0,
+        recordedKm: entry.kilometres,
+      })),
+    ]
+    const overlaps = isISODate(date) ? findOverlaps(candidate, others) : []
+    if (overlaps.length > 0 && !overlapAck) {
+      next.overlap = "This overlaps another record on the same vehicle or the same shift. It will not be added into the annual business-kilometre total unless you confirm it is not a double count."
+    }
+    if (next.odometer || next.distanceAck || next.overlap || next.businessKm || next.startOdometer || next.endOdometer) {
+      setLogOpen(true)
+    }
     setErrors(next)
-    if (Object.keys(next).length > 0 || payout === null || distance === null || orderCount === undefined) return
+    if (
+      Object.keys(next).length > 0 ||
+      payout === null ||
+      distance === null ||
+      kilometresToSave === null ||
+      orderCount === undefined ||
+      startReading === undefined ||
+      endReading === undefined
+    ) {
+      return
+    }
     onSave({
-      id: existing?.id ?? newId(),
+      id,
       date,
       start,
       end,
       earnings: payout,
-      kilometres: distance,
+      kilometres: kilometresToSave,
       orders: orderCount,
       area: area.trim(),
       note: note.trim(),
+      platform: platform.trim() || DEFAULT_PLATFORM,
+      vehicleId: linkedVehicle,
+      startOdometer: startReading,
+      endOdometer: endReading,
+      purpose,
+      businessKilometres,
+      businessPurpose: businessPurpose.trim(),
+      evidenceId: evidenceId.trim() || null,
+      overlapAcknowledged: overlapAck,
     })
   }
 
@@ -150,6 +266,78 @@ function ShiftForm({
           onChange={(event) => setNote(event.target.value)}
         />
       </Field>
+      <details className="rounded-lg border border-border px-3 py-2" open={logOpen} onToggle={(event) => setLogOpen(event.currentTarget.open)}>
+        <summary className="cursor-pointer text-sm font-medium">Vehicle log (optional)</summary>
+        <div className="mt-3 grid gap-4">
+          <p className="text-xs leading-5 text-muted-foreground">
+            A shift still saves with only the payout, times, and kilometres. Kilometres stay unclassified for tax until you mark them business, personal, or mixed. Unclassified kilometres are not deducted.
+          </p>
+          <Field label="Delivery platform" htmlFor="shift-platform" hint="Defaults to your setting, usually SkipTheDishes.">
+            <Input className="h-10" value={platform} maxLength={40} onChange={(event) => setPlatform(event.target.value)} />
+          </Field>
+          {data.vehicles.length > 1 ? (
+            <Field label="Vehicle" htmlFor="shift-vehicle" hint="Optional. Leave unlinked if this shift is not for one car.">
+              <select className={controlClass} value={vehicleId} onChange={(event) => setVehicleId(event.target.value)}>
+                <option value="">Not linked</option>
+                {data.vehicles.map((vehicle) => (
+                  <option key={vehicle.id} value={vehicle.id}>
+                    {[vehicle.nickname, vehicle.make, vehicle.model].filter(Boolean).join(" ") || "Vehicle"}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          ) : onlyVehicle ? (
+            <p className="text-xs text-muted-foreground">
+              Odometer readings on this shift attach to {onlyVehicle.nickname || onlyVehicle.make || "your vehicle"}.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Add a vehicle under Vehicle & Tax Records if you want these readings on a car. The shift can still be saved.
+            </p>
+          )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Start odometer" htmlFor="shift-odo-start" error={errors.startOdometer} hint="Optional.">
+              <Input className="h-10" inputMode="numeric" value={startOdometer} onChange={(event) => { setStartOdometer(event.target.value); setDistanceAck(false) }} />
+            </Field>
+            <Field label="End odometer" htmlFor="shift-odo-end" error={errors.endOdometer} hint="Optional. Distance is end minus start.">
+              <Input className="h-10" inputMode="numeric" value={endOdometer} onChange={(event) => { setEndOdometer(event.target.value); setDistanceAck(false) }} />
+            </Field>
+          </div>
+          {errors.odometer ? <p className="text-xs text-destructive">{errors.odometer}</p> : null}
+          {errors.distanceAck ? <p className="text-xs text-warning">{errors.distanceAck}</p> : null}
+          {errors.distanceAck ? (
+            <label className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">
+              <input type="checkbox" className="mt-0.5" checked={distanceAck} onChange={(event) => setDistanceAck(event.target.checked)} />
+              Use the odometer difference instead of the typed kilometres.
+            </label>
+          ) : null}
+          <Field label="Tax classification" htmlFor="shift-purpose" hint="Unclassified kilometres are missing for tax purposes. They are not treated as business.">
+            <select className={controlClass} value={purpose} onChange={(event) => setPurpose(event.target.value as TripPurpose)}>
+              {TRIP_PURPOSES.map((item) => (
+                <option key={item.id} value={item.id}>{item.label}</option>
+              ))}
+            </select>
+          </Field>
+          {purpose === "mixed" ? (
+            <Field label="Business kilometres" htmlFor="shift-business-km" error={errors.businessKm} hint="The rest of the trip is personal.">
+              <Input className="h-10" inputMode="decimal" value={businessKm} onChange={(event) => setBusinessKm(event.target.value)} />
+            </Field>
+          ) : null}
+          <Field label="Business purpose" htmlFor="shift-business" hint="Optional. What the business portion was for.">
+            <Input className="h-10" value={businessPurpose} maxLength={180} onChange={(event) => setBusinessPurpose(event.target.value)} />
+          </Field>
+          <Field label="Evidence reference" htmlFor="shift-evidence" hint="Optional. A note or receipt id. A file is not required.">
+            <Input className="h-10" value={evidenceId} maxLength={80} onChange={(event) => setEvidenceId(event.target.value)} />
+          </Field>
+          {errors.overlap ? <p className="text-xs text-warning">{errors.overlap}</p> : null}
+          {errors.overlap ? (
+            <label className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">
+              <input type="checkbox" className="mt-0.5" checked={overlapAck} onChange={(event) => setOverlapAck(event.target.checked)} />
+              This is not a double count. Include it with the overlapping record.
+            </label>
+          ) : null}
+        </div>
+      </details>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
@@ -446,7 +634,8 @@ export function ConfirmDialog() {
     destructive = true
   } else if (confirm?.type === "clear-all") {
     title = "Clear the ledger?"
-    description = "Shifts, fill-ups, bills, the weekly target, and vehicle assumptions are deleted from this browser."
+    description =
+      "Shifts, fill-ups, bills, vehicle records, and receipt photos stored in this browser are deleted. If a photo cannot be removed, you will be told."
     action = "Clear ledger"
     destructive = true
   }

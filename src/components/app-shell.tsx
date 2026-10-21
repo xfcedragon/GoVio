@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
+  Car,
   Fuel,
   LayoutDashboard,
   Receipt,
@@ -25,6 +26,7 @@ const NAV = [
   { href: "/shifts", label: "Shifts", short: "Shifts", icon: Route },
   { href: "/hourly", label: "Hourly Earnings", short: "Hourly", icon: Timer },
   { href: "/fuel", label: "Fuel", short: "Fuel", icon: Fuel },
+  { href: "/vehicle", label: "Vehicle & Tax Records", short: "Vehicle", icon: Car },
   { href: "/bills", label: "Bills & Goals", short: "Bills", icon: Receipt },
   { href: "/settings", label: "Settings", short: "Settings", icon: Settings },
 ] as const
@@ -133,7 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mt-auto border-t border-sidebar-border px-5 py-4">
           <p className="text-xs font-medium text-foreground">On this device</p>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            No account. Entries stay in this browser, in Canadian dollars.
+            No account. Entries and receipt photos stay in this browser. Nothing syncs.
           </p>
         </div>
       </aside>

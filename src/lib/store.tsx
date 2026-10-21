@@ -10,17 +10,23 @@ import {
   useSyncExternalStore,
 } from "react"
 import { buildSample } from "@/lib/sample"
+import { clearReceiptImages } from "@/lib/receipts-db"
 import { hasLedgerContent, readLedger, writeLedger } from "@/lib/storage"
 import { computeMetrics } from "@/lib/metrics"
 import {
   EMPTY_LEDGER,
   type Bill,
+  type ClaimStatus,
   type DashboardMetrics,
   type FuelFill,
+  type MileageEntry,
+  type OdometerReading,
   type Persisted,
   type Settings,
   type Shift,
   type Snapshot,
+  type Vehicle,
+  type VehicleExpense,
 } from "@/lib/types"
 
 type ConfirmKind =
@@ -84,12 +90,102 @@ function getServerSnapshot() {
   return serverSnapshot
 }
 
+function withoutSource(readings: OdometerReading[], source: OdometerReading["source"], sourceId: string) {
+  return readings.filter((reading) => !(reading.source === source && reading.sourceId === sourceId))
+}
+
+/** Replaces this shift's own start/end readings and leaves every other reading in place. */
+function syncShiftReadings(readings: OdometerReading[], shift: Shift): OdometerReading[] {
+  const next = withoutSource(readings, "shift", shift.id)
+  if (!shift.vehicleId) return next
+  if (shift.startOdometer != null) {
+    next.push({
+      id: `${shift.id}:start`,
+      vehicleId: shift.vehicleId,
+      date: shift.date,
+      kilometres: Math.round(shift.startOdometer),
+      source: "shift",
+      sourceId: shift.id,
+      role: "start",
+      note: "",
+    })
+  }
+  if (shift.endOdometer != null) {
+    next.push({
+      id: `${shift.id}:end`,
+      vehicleId: shift.vehicleId,
+      date: shift.date,
+      kilometres: Math.round(shift.endOdometer),
+      source: "shift",
+      sourceId: shift.id,
+      role: "end",
+      note: "",
+    })
+  }
+  return next
+}
+
+function syncMileageReadings(readings: OdometerReading[], entry: MileageEntry): OdometerReading[] {
+  const next = withoutSource(readings, "mileage", entry.id)
+  if (!entry.vehicleId) return next
+  if (entry.startOdometer != null) {
+    next.push({
+      id: `${entry.id}:start`,
+      vehicleId: entry.vehicleId,
+      date: entry.date,
+      kilometres: Math.round(entry.startOdometer),
+      source: "mileage",
+      sourceId: entry.id,
+      role: "start",
+      note: "",
+    })
+  }
+  if (entry.endOdometer != null) {
+    next.push({
+      id: `${entry.id}:end`,
+      vehicleId: entry.vehicleId,
+      date: entry.date,
+      kilometres: Math.round(entry.endOdometer),
+      source: "mileage",
+      sourceId: entry.id,
+      role: "end",
+      note: "",
+    })
+  }
+  return next
+}
+
+/**
+ * A fill-up odometer is attached only when the ledger has one vehicle.
+ * Older fill-ups have no vehicle id, so guessing among several cars would misfile the reading.
+ */
+function syncFuelReading(readings: OdometerReading[], fill: FuelFill, vehicleId: string | null): OdometerReading[] {
+  const next = withoutSource(readings, "fuel", fill.id)
+  if (!vehicleId || fill.odometer === null) return next
+  next.push({
+    id: `${fill.id}:odometer`,
+    vehicleId,
+    date: fill.date,
+    kilometres: Math.round(fill.odometer),
+    source: "fuel",
+    sourceId: fill.id,
+    role: "point",
+    note: "",
+  })
+  return next
+}
+
 function snapshotOf(ledger: Persisted): Snapshot {
   return {
     shifts: ledger.shifts,
     fuel: ledger.fuel,
     bills: ledger.bills,
     settings: ledger.settings,
+    vehicles: ledger.vehicles,
+    odometerReadings: ledger.odometerReadings,
+    mileage: ledger.mileage,
+    expenses: ledger.expenses,
+    yearCoverage: ledger.yearCoverage,
   }
 }
 
@@ -144,6 +240,14 @@ type SkipPilotContextValue = {
   requestClearSample: () => void
   requestClearAll: () => void
   notify: (message: string) => void
+  saveVehicle: (vehicle: Vehicle, reading: { date: string; kilometres: number } | null) => boolean
+  deleteVehicle: (id: string) => boolean
+  saveMileage: (entry: MileageEntry) => boolean
+  deleteMileage: (id: string) => boolean
+  saveExpense: (expense: VehicleExpense) => boolean
+  deleteExpense: (id: string) => boolean
+  setFuelClaimStatus: (id: string, status: ClaimStatus) => boolean
+  setYearCoverage: (vehicleId: string, year: number, fullYearLogged: boolean) => boolean
 }
 
 const SkipPilotContext = createContext<SkipPilotContextValue | null>(null)
@@ -185,17 +289,25 @@ export function SkipPilotProvider({ children }: { children: React.ReactNode }) {
     const shifts = exists
       ? current.shifts.map((item) => (item.id === shift.id ? shift : item))
       : [shift, ...current.shifts]
-    if (commit({ ...current, shifts })) showNotice("Shift saved")
+    const odometerReadings = syncShiftReadings(current.odometerReadings, shift)
+    if (commit({ ...current, shifts, odometerReadings })) showNotice("Shift saved")
     setPanel(null)
   }, [])
 
   const saveFuel = useCallback((fill: FuelFill) => {
     const current = clientSnapshot.ledger
-    const exists = current.fuel.some((item) => item.id === fill.id)
+    const previous = current.fuel.find((item) => item.id === fill.id)
+    const nextFill: FuelFill = {
+      ...fill,
+      claimStatus: fill.claimStatus ?? previous?.claimStatus ?? "unreviewed",
+    }
+    const exists = previous !== undefined
     const fuel = exists
-      ? current.fuel.map((item) => (item.id === fill.id ? fill : item))
-      : [fill, ...current.fuel]
-    if (commit({ ...current, fuel })) showNotice("Fill-up saved")
+      ? current.fuel.map((item) => (item.id === nextFill.id ? nextFill : item))
+      : [nextFill, ...current.fuel]
+    const soleVehicle = current.vehicles.length === 1 ? current.vehicles[0].id : null
+    const odometerReadings = syncFuelReading(current.odometerReadings, nextFill, soleVehicle)
+    if (commit({ ...current, fuel, odometerReadings })) showNotice("Fill-up saved")
     setPanel(null)
   }, [])
 
@@ -261,7 +373,10 @@ export function SkipPilotProvider({ children }: { children: React.ReactNode }) {
   const clearAll = useCallback(() => {
     const saved = commit(EMPTY_LEDGER)
     setPanel(null)
-    if (saved) showNotice("Ledger cleared")
+    void clearReceiptImages().then((photosCleared) => {
+      if (!saved) return
+      showNotice(photosCleared ? "Ledger cleared" : "Ledger cleared. Receipt photos may still be in this browser.")
+    })
   }, [])
 
   const requestSample = useCallback(() => {
@@ -278,6 +393,129 @@ export function SkipPilotProvider({ children }: { children: React.ReactNode }) {
   }, [])
   const requestClearAll = useCallback(() => {
     setPanel({ type: "confirm", confirm: { type: "clear-all" } })
+  }, [])
+
+  const saveVehicle = useCallback((vehicle: Vehicle, reading: { date: string; kilometres: number } | null) => {
+    const current = clientSnapshot.ledger
+    const exists = current.vehicles.some((item) => item.id === vehicle.id)
+    const vehicles = exists
+      ? current.vehicles.map((item) => (item.id === vehicle.id ? vehicle : item))
+      : [vehicle, ...current.vehicles]
+    let odometerReadings = current.odometerReadings.filter((item) => item.id !== `${vehicle.id}:initial`)
+    if (vehicle.initialOdometer !== null && vehicle.initialOdometerDate) {
+      // The declared starting reading is one slot. Later "current" readings are appended below and are not replaced.
+      odometerReadings = [
+        ...odometerReadings,
+        {
+          id: `${vehicle.id}:initial`,
+          vehicleId: vehicle.id,
+          date: vehicle.initialOdometerDate,
+          kilometres: Math.round(vehicle.initialOdometer),
+          source: "initial",
+          sourceId: vehicle.id,
+          role: "point",
+          note: "Initial reading",
+        },
+      ]
+    }
+    if (reading) {
+      odometerReadings = [
+        ...odometerReadings,
+        {
+          id: crypto.randomUUID(),
+          vehicleId: vehicle.id,
+          date: reading.date,
+          kilometres: Math.round(reading.kilometres),
+          source: "manual",
+          sourceId: null,
+          role: "point",
+          note: "",
+        },
+      ]
+    }
+    const saved = commit({ ...current, vehicles, odometerReadings })
+    if (saved) showNotice("Vehicle saved")
+    return saved
+  }, [])
+
+  const deleteVehicle = useCallback((id: string) => {
+    const current = clientSnapshot.ledger
+    const saved = commit({
+      ...current,
+      vehicles: current.vehicles.filter((vehicle) => vehicle.id !== id),
+      odometerReadings: current.odometerReadings.filter((reading) => reading.vehicleId !== id),
+      yearCoverage: current.yearCoverage.filter((item) => item.vehicleId !== id),
+      shifts: current.shifts.map((shift) => (shift.vehicleId === id ? { ...shift, vehicleId: null } : shift)),
+      mileage: current.mileage.map((entry) => (entry.vehicleId === id ? { ...entry, vehicleId: null } : entry)),
+      expenses: current.expenses.map((expense) => (expense.vehicleId === id ? { ...expense, vehicleId: null } : expense)),
+    })
+    if (saved) showNotice("Vehicle removed. Trips and receipts stayed, without that vehicle link.")
+    return saved
+  }, [])
+
+  const saveMileage = useCallback((entry: MileageEntry) => {
+    const current = clientSnapshot.ledger
+    const exists = current.mileage.some((item) => item.id === entry.id)
+    const mileage = exists
+      ? current.mileage.map((item) => (item.id === entry.id ? entry : item))
+      : [entry, ...current.mileage]
+    const odometerReadings = syncMileageReadings(current.odometerReadings, entry)
+    const saved = commit({ ...current, mileage, odometerReadings })
+    if (saved) showNotice("Mileage entry saved")
+    return saved
+  }, [])
+
+  const deleteMileage = useCallback((id: string) => {
+    const current = clientSnapshot.ledger
+    const saved = commit({
+      ...current,
+      mileage: current.mileage.filter((entry) => entry.id !== id),
+      odometerReadings: withoutSource(current.odometerReadings, "mileage", id),
+    })
+    if (saved) showNotice("Mileage entry deleted")
+    return saved
+  }, [])
+
+  const saveExpense = useCallback((expense: VehicleExpense) => {
+    const current = clientSnapshot.ledger
+    const exists = current.expenses.some((item) => item.id === expense.id)
+    const expenses = exists
+      ? current.expenses.map((item) => (item.id === expense.id ? expense : item))
+      : [expense, ...current.expenses]
+    const saved = commit({ ...current, expenses })
+    if (saved) showNotice("Receipt saved")
+    return saved
+  }, [])
+
+  const deleteExpense = useCallback((id: string) => {
+    const current = clientSnapshot.ledger
+    const saved = commit({
+      ...current,
+      expenses: current.expenses.filter((expense) => expense.id !== id),
+    })
+    if (saved) showNotice("Receipt deleted")
+    return saved
+  }, [])
+
+  const setFuelClaimStatus = useCallback((id: string, status: ClaimStatus) => {
+    const current = clientSnapshot.ledger
+    const saved = commit({
+      ...current,
+      fuel: current.fuel.map((fill) => (fill.id === id ? { ...fill, claimStatus: status } : fill)),
+    })
+    if (saved) showNotice("Fill-up classification saved")
+    return saved
+  }, [])
+
+  const setYearCoverage = useCallback((vehicleId: string, year: number, fullYearLogged: boolean) => {
+    const current = clientSnapshot.ledger
+    const yearCoverage = [
+      ...current.yearCoverage.filter((item) => !(item.vehicleId === vehicleId && item.year === year)),
+      { vehicleId, year, fullYearLogged },
+    ]
+    const saved = commit({ ...current, yearCoverage })
+    if (saved) showNotice(fullYearLogged ? "Full year marked" : "Full-year mark removed")
+    return saved
   }, [])
 
   const confirmPanel = useCallback(() => {
@@ -300,12 +538,14 @@ export function SkipPilotProvider({ children }: { children: React.ReactNode }) {
       const saved = commit({
         ...ledgerNow,
         shifts: ledgerNow.shifts.filter((shift) => shift.id !== confirm.id),
+        odometerReadings: withoutSource(ledgerNow.odometerReadings, "shift", confirm.id),
       })
       if (saved) showNotice("Shift deleted")
     } else if (confirm.type === "delete-fuel") {
       const saved = commit({
         ...ledgerNow,
         fuel: ledgerNow.fuel.filter((fill) => fill.id !== confirm.id),
+        odometerReadings: withoutSource(ledgerNow.odometerReadings, "fuel", confirm.id),
       })
       if (saved) showNotice("Fill-up deleted")
     } else {
@@ -346,10 +586,21 @@ export function SkipPilotProvider({ children }: { children: React.ReactNode }) {
       requestClearSample,
       requestClearAll,
       notify,
+      saveVehicle,
+      deleteVehicle,
+      saveMileage,
+      deleteMileage,
+      saveExpense,
+      deleteExpense,
+      setFuelClaimStatus,
+      setYearCoverage,
     }),
     [
       closePanel,
       confirmPanel,
+      deleteExpense,
+      deleteMileage,
+      deleteVehicle,
       ledger,
       metrics,
       notice,
@@ -366,8 +617,13 @@ export function SkipPilotProvider({ children }: { children: React.ReactNode }) {
       requestDeleteShift,
       requestSample,
       saveBill,
+      saveExpense,
       saveFuel,
+      saveMileage,
       saveShift,
+      saveVehicle,
+      setFuelClaimStatus,
+      setYearCoverage,
       toggleBillPaid,
       updateSettings,
     ],

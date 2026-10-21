@@ -17,6 +17,7 @@ function settingsKey(settings: Settings) {
     settings.province,
     settings.litresPer100km ?? "",
     settings.fuelPricePerLitre ?? "",
+    settings.defaultPlatform,
   ].join("|")
 }
 
@@ -29,6 +30,7 @@ function SettingsForm() {
   const [price, setPrice] = useState(
     settings.fuelPricePerLitre === null ? "" : String(settings.fuelPricePerLitre),
   )
+  const [platform, setPlatform] = useState(settings.defaultPlatform)
   const [errors, setErrors] = useState<{ litres?: string; price?: string }>({})
 
   function save(event: React.FormEvent) {
@@ -59,6 +61,7 @@ function SettingsForm() {
       province,
       litresPer100km: litresValue,
       fuelPricePerLitre: priceValue,
+      defaultPlatform: platform.trim() || "SkipTheDishes",
     })
     if (saved) notify("Settings saved")
   }
@@ -92,7 +95,9 @@ function SettingsForm() {
 
       <h2 className="pt-2 text-base font-semibold">Vehicle assumption</h2>
       <p className="text-sm leading-6 text-muted-foreground">
-        Used for a week with kilometres and no fill-up. The weekly pay target is edited on{" "}
+        Used when Hourly Earnings estimates fuel consumed, and when a week has kilometres and no fill-up. A vehicle
+        profile can store its own L/100 km for the tax records. This ledger rate stays here. The weekly pay target is
+        edited on{" "}
         <Link href="/bills#weekly-target" className="text-primary hover:underline">
           Bills & Goals
         </Link>
@@ -118,6 +123,9 @@ function SettingsForm() {
           />
         </Field>
       </div>
+      <Field label="Default delivery platform" htmlFor="settings-platform" hint="New shifts start with this. SkipTheDishes if you leave it blank.">
+        <Input className="h-10" value={platform} maxLength={40} onChange={(event) => setPlatform(event.target.value)} />
+      </Field>
       <Button type="submit" className="h-10 px-3.5">
         Save settings
       </Button>
@@ -143,8 +151,8 @@ export function SettingsView() {
       <section className="max-w-xl rounded-2xl border border-border bg-card p-5">
         <h2 className="text-base font-semibold">Data in this browser</h2>
         <p className="mt-1 text-sm leading-6 text-muted-foreground">
-          SkipPilot keeps the ledger in local storage. Clearing site data, or opening another browser, starts empty.
-          There is no account.
+          SkipPilot keeps the ledger in local storage. Receipt photos stay in this browser&apos;s IndexedDB.
+          Clearing site data, or opening another browser, starts empty. There is no account and nothing syncs.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button type="button" variant="outline" className="h-10 px-3.5" onClick={requestSample}>

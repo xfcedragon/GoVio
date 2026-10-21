@@ -101,6 +101,12 @@ export function buildSample(today: Date): Snapshot {
       weeklyIncomeTarget: 500,
       litresPer100km: 8.4,
       fuelPricePerLitre: 1.62,
+      defaultPlatform: "SkipTheDishes",
     },
+    vehicles: [],
+    odometerReadings: [],
+    mileage: [],
+    expenses: [],
+    yearCoverage: [],
   }
 }

@@ -78,6 +78,13 @@ export function FuelView() {
             </Link>
             .
           </li>
+          <li>
+            A fill-up is cash paid at the pump. It is not the same as fuel consumed on a shift.{" "}
+            <Link href="/vehicle" className="text-primary hover:underline">
+              Vehicle & Tax Records
+            </Link>{" "}
+            keeps those figures apart for the year. Linking a receipt there to this fill-up counts the purchase once.
+          </li>
         </ol>
       </section>
 
