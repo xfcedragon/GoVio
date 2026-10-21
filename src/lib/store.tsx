@@ -61,12 +61,13 @@ function emit() {
 
 function ensureClient() {
   if (clientReady || typeof window === "undefined") return
-  clientReady = true
+  const ledger = readLedger()
   clientSnapshot = {
-    ledger: readLedger(),
+    ledger,
     now: new Date(),
     notice: null,
   }
+  clientReady = true
 }
 
 function subscribe(listener: () => void) {
@@ -152,9 +153,14 @@ export function SkipPilotProvider({ children }: { children: React.ReactNode }) {
   const [panel, setPanel] = useState<Panel>(null)
   const { ledger, now, notice } = snapshot
 
+  // Hydration renders getServerSnapshot, which keeps `now` null so the server
+  // HTML stays free of this browser's ledger. Publish the client clock and
+  // saved ledger after subscribe; pages already render the empty dashboard
+  // from that server snapshot, then fill in saved entries on this update.
   useEffect(() => {
+    ensureClient()
+    emit()
     const id = window.setInterval(() => {
-      if (!clientSnapshot.now) return
       clientSnapshot = { ...clientSnapshot, now: new Date() }
       emit()
     }, 60_000)

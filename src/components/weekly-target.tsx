@@ -7,11 +7,13 @@ import { useSkipPilot } from "@/lib/store"
 import { cn } from "@/lib/utils"
 
 export function WeeklyTargetCard({ className }: { className?: string }) {
-  const { metrics } = useSkipPilot()
-  if (!metrics) return null
-  const { week, target, weekProgress } = metrics
+  const { metrics, data } = useSkipPilot()
+  const target = metrics?.target ?? data.settings.weeklyIncomeTarget
+  const week = metrics?.week
+  const weekProgress = metrics?.weekProgress ?? null
   const percent = weekProgress === null ? 0 : Math.min(100, Math.round(weekProgress * 100))
-  const remaining = target - week.earnings
+  const showProgress = week !== undefined && target > 0 && weekProgress !== null
+  const remaining = week ? target - week.earnings : 0
 
   return (
     <article className={cn("rounded-2xl border border-border bg-card px-4 py-4 sm:px-5 sm:py-5", className)}>
@@ -26,7 +28,7 @@ export function WeeklyTargetCard({ className }: { className?: string }) {
           {target > 0 ? "Edit target" : "Set a target"}
         </Link>
       </div>
-      {target > 0 && weekProgress !== null ? (
+      {showProgress && week ? (
         <>
           <p className="mt-4 text-sm text-muted-foreground">
             <Numeric tone="positive">{formatCad(week.earnings)}</Numeric>
@@ -52,7 +54,9 @@ export function WeeklyTargetCard({ className }: { className?: string }) {
         </>
       ) : (
         <p className="mt-4 max-w-prose text-sm leading-6 text-muted-foreground">
-          No weekly target yet. Set the amount you want in gross payouts and this bar fills from the shifts you log.
+          {target > 0 && !metrics
+            ? "This week's bar uses the date on this device. The target amount is already saved."
+            : "No weekly target yet. Set the amount you want in gross payouts and this bar fills from the shifts you log."}
         </p>
       )}
     </article>

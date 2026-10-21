@@ -5,7 +5,6 @@ import { Fuel, Pencil, Trash2 } from "lucide-react"
 import { EmptyState } from "@/components/empty-state"
 import { PageHeader } from "@/components/page-header"
 import { Numeric } from "@/components/numeric"
-import { PageSkeleton } from "@/components/skeleton"
 import { StatCard } from "@/components/stat-card"
 import { Button } from "@/components/ui/button"
 import { formatWeekdayDate } from "@/lib/dates"
@@ -14,14 +13,15 @@ import { distanceFuelEstimate, fuelMethodLabel } from "@/lib/metrics"
 import { useSkipPilot } from "@/lib/store"
 
 export function FuelView() {
-  const { ready, metrics, data, openFuel, requestDeleteFuel } = useSkipPilot()
-  if (!ready || !metrics) return <PageSkeleton />
+  const { metrics, data, openFuel, requestDeleteFuel } = useSkipPilot()
 
   const fills = [...data.fuel].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
-  const estimate = distanceFuelEstimate(metrics.week.kilometres, data.settings)
-  const logged = data.fuel
-    .filter((fill) => fill.date >= metrics.weekStartIso && fill.date <= metrics.weekEndIso)
-    .reduce((sum, fill) => sum + fill.total, 0)
+  const estimate = metrics ? distanceFuelEstimate(metrics.week.kilometres, data.settings) : null
+  const logged = metrics
+    ? data.fuel
+        .filter((fill) => fill.date >= metrics.weekStartIso && fill.date <= metrics.weekEndIso)
+        .reduce((sum, fill) => sum + fill.total, 0)
+    : 0
 
   return (
     <div className="space-y-6">
@@ -39,21 +39,29 @@ export function FuelView() {
       <section aria-label="Fuel summary" className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <StatCard
           label="Used for net pay"
-          value={metrics.week.fuelMethod === "none" ? "—" : formatCad(metrics.week.fuelCost)}
-          hint={fuelMethodLabel(metrics.week.fuelMethod)}
+          value={!metrics || metrics.week.fuelMethod === "none" ? "—" : formatCad(metrics.week.fuelCost)}
+          hint={metrics ? fuelMethodLabel(metrics.week.fuelMethod) : "Log a fill-up, or set L/100 km and a pump price"}
         />
         <StatCard
           label="Fill-ups this week"
-          value={logged > 0 ? formatCad(logged) : "—"}
-          hint={logged > 0 ? "Sum of receipts dated this week" : "No receipt dated this week"}
+          value={metrics && logged > 0 ? formatCad(logged) : "—"}
+          hint={
+            !metrics
+              ? "Dated this week"
+              : logged > 0
+                ? "Sum of receipts dated this week"
+                : "No receipt dated this week"
+          }
         />
         <StatCard
           label="Distance estimate"
           value={estimate === null ? "—" : formatCad(estimate)}
           hint={
-            estimate === null
-              ? `${formatKm(metrics.week.kilometres)} this week · set L/100 km and a pump price`
-              : `${formatKm(metrics.week.kilometres)} × ${data.settings.litresPer100km} L/100 km`
+            !metrics
+              ? "Set L/100 km and a pump price"
+              : estimate === null
+                ? `${formatKm(metrics.week.kilometres)} this week · set L/100 km and a pump price`
+                : `${formatKm(metrics.week.kilometres)} × ${data.settings.litresPer100km} L/100 km`
           }
         />
       </section>

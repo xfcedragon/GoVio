@@ -81,6 +81,11 @@ export function greetingFor(date: Date, name: string): string {
   return trimmed ? `${hello}, ${trimmed}` : hello
 }
 
+export function greetingWithoutClock(name: string): string {
+  const trimmed = name.trim()
+  return trimmed ? `Hello, ${trimmed}` : "Hello"
+}
+
 export function duePhrase(due: string, today: string): string {
   const diff = daysBetween(today, due)
   if (diff === 0) return "Due today"

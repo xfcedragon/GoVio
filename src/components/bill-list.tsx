@@ -3,7 +3,7 @@
 import { Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Numeric } from "@/components/numeric"
-import { duePhrase } from "@/lib/dates"
+import { duePhrase, formatMonthDay } from "@/lib/dates"
 import { formatCad } from "@/lib/format"
 import { useSkipPilot } from "@/lib/store"
 import { BILL_CATEGORIES, type Bill } from "@/lib/types"
@@ -18,7 +18,7 @@ export function BillList({
   compact = false,
 }: {
   bills: Bill[]
-  todayIso: string
+  todayIso: string | null
   compact?: boolean
 }) {
   const { openBill, requestDeleteBill, toggleBillPaid } = useSkipPilot()
@@ -26,8 +26,8 @@ export function BillList({
   return (
     <ul className="divide-y divide-border">
       {bills.map((bill) => {
-        const phrase = duePhrase(bill.dueDate, todayIso)
-        const overdue = !bill.paid && bill.dueDate < todayIso
+        const phrase = todayIso ? duePhrase(bill.dueDate, todayIso) : `Due ${formatMonthDay(bill.dueDate)}`
+        const overdue = todayIso !== null && !bill.paid && bill.dueDate < todayIso
         return (
           <li key={bill.id} className="flex items-start justify-between gap-3 px-5 py-3.5">
             <div className="min-w-0">

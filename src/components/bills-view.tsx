@@ -5,7 +5,6 @@ import { Receipt } from "lucide-react"
 import { BillList } from "@/components/bill-list"
 import { EmptyState } from "@/components/empty-state"
 import { PageHeader } from "@/components/page-header"
-import { PageSkeleton } from "@/components/skeleton"
 import { WeeklyTargetCard } from "@/components/weekly-target"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -74,9 +73,7 @@ function TargetForm({ stored }: { stored: number }) {
 }
 
 export function BillsView() {
-  const { ready, metrics, data, openBill } = useSkipPilot()
-
-  if (!ready || !metrics) return <PageSkeleton />
+  const { metrics, data, openBill } = useSkipPilot()
 
   const upcoming = data.bills
     .filter((bill) => !bill.paid)
@@ -108,7 +105,7 @@ export function BillsView() {
           <h2 className="text-base font-semibold">Upcoming</h2>
         </div>
         {upcoming.length > 0 ? (
-          <BillList bills={upcoming} todayIso={metrics.todayIso} />
+          <BillList bills={upcoming} todayIso={metrics?.todayIso ?? null} />
         ) : (
           <EmptyState
             icon={Receipt}
@@ -128,7 +125,7 @@ export function BillsView() {
           <div className="px-5 py-4">
             <h2 className="text-base font-semibold">Paid</h2>
           </div>
-          <BillList bills={paid} todayIso={metrics.todayIso} />
+          <BillList bills={paid} todayIso={metrics?.todayIso ?? null} />
         </section>
       ) : null}
     </div>

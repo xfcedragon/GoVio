@@ -78,8 +78,8 @@ function NavLinks({ compact = false }: { compact?: boolean }) {
 }
 
 function DemoBanner() {
-  const { demo, ready, requestClearSample } = useSkipPilot()
-  if (!ready || !demo) return null
+  const { demo, requestClearSample } = useSkipPilot()
+  if (!demo) return null
   return (
     <div className="border-b border-warning/30 bg-warning/10">
       <div className="flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-10">

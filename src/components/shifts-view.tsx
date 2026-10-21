@@ -4,7 +4,6 @@ import { useState } from "react"
 import { Route } from "lucide-react"
 import { EmptyState } from "@/components/empty-state"
 import { PageHeader } from "@/components/page-header"
-import { PageSkeleton } from "@/components/skeleton"
 import { SegmentedControl } from "@/components/segmented-control"
 import { ShiftsTable } from "@/components/shifts-table"
 import { StatCard } from "@/components/stat-card"
@@ -14,18 +13,19 @@ import { compareShiftsDesc, summarizeShifts } from "@/lib/metrics"
 import { useSkipPilot } from "@/lib/store"
 
 export function ShiftsView() {
-  const { ready, metrics, data, openShift } = useSkipPilot()
+  const { metrics, data, openShift } = useSkipPilot()
   const [scope, setScope] = useState<"week" | "all">("all")
 
-  if (!ready || !metrics) return <PageSkeleton cards={3} />
-
   const filtered = data.shifts
-    .filter((shift) =>
-      scope === "all" ? true : shift.date >= metrics.weekStartIso && shift.date <= metrics.weekEndIso,
-    )
+    .filter((shift) => {
+      if (scope === "all") return true
+      if (!metrics) return false
+      return shift.date >= metrics.weekStartIso && shift.date <= metrics.weekEndIso
+    })
     .sort(compareShiftsDesc)
   const summary = summarizeShifts(filtered)
-  const emptyWeek = scope === "week" && filtered.length === 0 && data.shifts.length > 0
+  const weekPending = scope === "week" && metrics === null
+  const emptyWeek = scope === "week" && metrics !== null && filtered.length === 0 && data.shifts.length > 0
 
   return (
     <div className="space-y-6">
@@ -51,7 +51,11 @@ export function ShiftsView() {
           ]}
         />
         <p className="text-sm text-muted-foreground">
-          {summary.count === 0 ? "No shifts in this view" : `${summary.count} in this view`}
+          {weekPending
+            ? "This week"
+            : summary.count === 0
+              ? "No shifts in this view"
+              : `${summary.count} in this view`}
         </p>
       </div>
 
@@ -80,11 +84,13 @@ export function ShiftsView() {
         ) : (
           <EmptyState
             icon={Route}
-            title={emptyWeek ? "Nothing logged this week" : "No shifts yet"}
+            title={weekPending ? "This week" : emptyWeek ? "Nothing logged this week" : "No shifts yet"}
             body={
-              emptyWeek
-                ? "Older shifts are still saved. Switch to all shifts, or add the one you just finished."
-                : "Log a shift when you know the payout. SkipPilot does not pull numbers from SkipTheDishes."
+              weekPending
+                ? "The week range uses the date on this device."
+                : emptyWeek
+                  ? "Older shifts are still saved. Switch to all shifts, or add the one you just finished."
+                  : "Log a shift when you know the payout. SkipPilot does not pull numbers from SkipTheDishes."
             }
             actions={
               <>

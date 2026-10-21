@@ -4,7 +4,6 @@ import { useState } from "react"
 import Link from "next/link"
 import { Field, controlClass } from "@/components/field"
 import { PageHeader } from "@/components/page-header"
-import { PageSkeleton } from "@/components/skeleton"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { parseDecimal } from "@/lib/parse"
@@ -127,9 +126,7 @@ function SettingsForm() {
 }
 
 export function SettingsView() {
-  const { ready, data, demo, requestSample, requestClearSample, requestClearAll } = useSkipPilot()
-
-  if (!ready) return <PageSkeleton cards={2} />
+  const { data, demo, requestSample, requestClearSample, requestClearAll } = useSkipPilot()
 
   const canClear = hasLedgerContent(data) || demo
 
