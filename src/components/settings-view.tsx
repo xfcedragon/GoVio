@@ -69,7 +69,7 @@ function SettingsForm() {
   return (
     <form onSubmit={save} className="max-w-xl space-y-4 rounded-md border border-border bg-card p-3">
       <h2 className="text-base font-semibold">Profile</h2>
-      <Field label="Display name" htmlFor="settings-name" hint="Optional label on this device. Leave blank to skip it.">
+      <Field label="Display name" htmlFor="settings-name" hint="Shown next to the date on Overview. Leave blank to skip it.">
         <Input
           className="h-10"
           value={name}

@@ -104,6 +104,7 @@ export function Overview() {
           <h1 className="text-lg font-medium tracking-tight text-foreground">Overview</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {now ? formatLongDate(now) : "—"}
+            {data.settings.displayName.trim() ? ` · ${data.settings.displayName.trim()}` : ""}
             {province ? ` · ${province}` : ""}
           </p>
         </div>
