@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { useFormStatus } from "react-dom"
 import { textLinkClass } from "@/components/field"
+import { useSignupVisitId } from "@/components/signup-visit"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,6 +16,7 @@ import {
 } from "@/lib/auth-actions"
 import {
   initialAuthState,
+  signupConfirmationScreen,
   validateForgotPassword,
   validatePasswordReset,
   validateSignIn,
@@ -228,7 +230,16 @@ function SignInForm({ nextPath, error, notice }: { nextPath: string; error: stri
   )
 }
 
+const signupDocumentId = globalThis.crypto.randomUUID()
+
 function SignUpForm({ nextPath }: { nextPath: string }) {
+  // The route cache restores this page's action state after a client navigation.
+  // A new visit id remounts the session, so a previous confirmation is not the form.
+  const visitId = useSignupVisitId()
+  return <SignUpFormSession key={visitId} nextPath={nextPath} visitId={visitId} />
+}
+
+function SignUpFormSession({ nextPath, visitId }: { nextPath: string; visitId: number }) {
   const [state, action] = useActionState(signUpAction, initialAuthState)
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
@@ -237,6 +248,14 @@ function SignUpForm({ nextPath }: { nextPath: string }) {
   const [clientErrors, setClientErrors] = useState<FieldErrors>({})
   const clientInvalid = Object.keys(clientErrors).length > 0
   const errors = clientInvalid ? clientErrors : (state?.fieldErrors ?? {})
+  const screen = signupConfirmationScreen({
+    pending:
+      state.status === "check-email"
+        ? { message: state.message, visitId, documentId: signupDocumentId }
+        : null,
+    visitId,
+    documentId: signupDocumentId,
+  })
 
   return (
     <div className="space-y-4">
@@ -246,9 +265,9 @@ function SignUpForm({ nextPath }: { nextPath: string }) {
           Supabase sends the confirmation email. Opening that link verifies the address.
         </p>
       </div>
-      {state.status === "check-email" ? (
+      {screen.mode === "check-email" ? (
         <div className="space-y-3 rounded-md border border-border bg-card p-4">
-          <FormMessage state={state} clientInvalid={false} />
+          <FormMessage state={{ ...state, status: "check-email", message: screen.message }} clientInvalid={false} />
           <Link href={withNext("/login", nextPath)} className={textLinkClass}>Back to sign in</Link>
         </div>
       ) : (
@@ -275,7 +294,7 @@ function SignUpForm({ nextPath }: { nextPath: string }) {
           <SubmitButton idle="Create account" pending="Creating account…" />
         </form>
       )}
-      {state.status === "check-email" ? null : (
+      {screen.mode === "check-email" ? null : (
         <p className="text-sm text-muted-foreground">
           <Link href={withNext("/login", nextPath)} className={textLinkClass}>Already have an account</Link>
         </p>

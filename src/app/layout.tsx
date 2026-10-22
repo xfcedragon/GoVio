@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
+import { SignupVisitProvider } from "@/components/signup-visit";
 import { SkipPilotProvider } from "@/lib/store";
 import "./globals.css";
 
@@ -35,7 +36,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full bg-background text-foreground">
         <SkipPilotProvider>
-          <AppShell>{children}</AppShell>
+          <SignupVisitProvider>
+            <AppShell>{children}</AppShell>
+          </SignupVisitProvider>
         </SkipPilotProvider>
       </body>
     </html>

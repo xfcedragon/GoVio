@@ -7,6 +7,7 @@ import {
   authErrorMessage,
   destinationAfterAuth,
   emailConfirmationRedirect,
+  existingSignUpAccountMessage,
   isExpiredAuthFailure,
   isSupabaseConfigured,
   sessionFailure,
@@ -77,22 +78,32 @@ export async function signUpAction(_state: AuthActionState, formData: FormData):
   }
 
   const confirmed = Boolean(data.user?.email_confirmed_at)
-  if (!data.session || !confirmed) {
+  if (data.session && confirmed) redirect(next)
+
+  const existingAccount = existingSignUpAccountMessage(data.user?.identities)
+  if (existingAccount) {
     if (data.session) {
       try {
         await supabase.auth.signOut()
       } catch {
-        // The confirmation message still stands. A leftover cookie is not a verified session.
+        // An unverified signup cookie is not a signed-in session.
       }
     }
-    return {
-      status: "check-email",
-      message: `Check ${input.email.trim()} for a confirmation link. GoVio does not mark the account verified until you open that link.`,
-      fieldErrors: {},
-    }
+    return failed(existingAccount)
   }
 
-  redirect(next)
+  if (data.session) {
+    try {
+      await supabase.auth.signOut()
+    } catch {
+      // The confirmation message still stands. A leftover cookie is not a verified session.
+    }
+  }
+  return {
+    status: "check-email",
+    message: `Check ${input.email.trim()} for a confirmation link. GoVio does not mark the account verified until you open that link.`,
+    fieldErrors: {},
+  }
 }
 
 export async function signInAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {

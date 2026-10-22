@@ -45,6 +45,40 @@ export const initialAuthState: AuthActionState = {
   fieldErrors: {},
 }
 
+export const EXISTING_ACCOUNT_MESSAGE =
+  "An account with this email already exists. Sign in, or reset the password."
+
+/**
+ * With email confirmation on, Supabase answers an already-registered address
+ * with an empty identities list and no error. A new signup includes an identity.
+ */
+export function existingSignUpAccountMessage(identities: unknown): string | null {
+  if (!Array.isArray(identities) || identities.length > 0) return null
+  return EXISTING_ACCOUNT_MESSAGE
+}
+
+export type SignupPendingConfirmation = {
+  message: string
+  visitId: number
+  documentId: string
+}
+
+/**
+ * The check-email panel is only for the submission that just succeeded.
+ * A pending confirmation stored under another document (a reload) or another
+ * visit (leave /signup and come back) is ignored, and the form is shown.
+ */
+export function signupConfirmationScreen(input: {
+  pending: SignupPendingConfirmation | null
+  visitId: number
+  documentId: string
+}): { mode: "form" } | { mode: "check-email"; message: string } {
+  const pending = input.pending
+  if (!pending || pending.message.length === 0) return { mode: "form" }
+  if (pending.documentId !== input.documentId || pending.visitId !== input.visitId) return { mode: "form" }
+  return { mode: "check-email", message: pending.message }
+}
+
 export type ProfileActionState = {
   status: "idle" | "error" | "saved"
   message: string
@@ -405,7 +439,7 @@ export function authErrorMessage(error: AuthFailure, intent: "sign-in" | "sign-u
     return "Too many attempts. Wait a moment and try again."
   }
   if (intent === "sign-up" && (message.includes("already registered") || message.includes("already been registered"))) {
-    return "An account with this email already exists. Sign in, or reset the password."
+    return EXISTING_ACCOUNT_MESSAGE
   }
   if ((intent === "sign-up" || intent === "reset") && (code === "weak_password" || message.includes("password"))) {
     return "Choose a password of at least 8 characters."

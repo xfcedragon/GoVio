@@ -6,7 +6,10 @@ import {
   authLinkErrorCode,
   destinationAfterAuth,
   emailConfirmationRedirect,
+  EXISTING_ACCOUNT_MESSAGE,
+  existingSignUpAccountMessage,
   initialAuthState,
+  signupConfirmationScreen,
   siteOrigin,
   isExpoSupabaseConfigured,
   isSupabaseConfigured,
@@ -414,6 +417,38 @@ test("a normal production host is not rewritten to 127.0.0.1", () => {
   )
   assert.equal(siteOrigin({ host: "ledger.example.com", forwardedProto: "https" }), "https://ledger.example.com")
   assert.equal(siteOrigin({ host: "127.0.0.1:43127", forwardedProto: "https" }), "http://127.0.0.1:43127")
+})
+
+test("a stored signup confirmation is shown only for the submission that just succeeded", () => {
+  const message = "Check ada@example.com for a confirmation link. GoVio does not mark the account verified until you open that link."
+  const pending = { message, visitId: 1, documentId: "document-a" }
+
+  assert.deepEqual(signupConfirmationScreen({ pending, visitId: 1, documentId: "document-a" }), {
+    mode: "check-email",
+    message,
+  })
+  assert.deepEqual(signupConfirmationScreen({ pending, visitId: 1, documentId: "document-b" }), { mode: "form" })
+  assert.deepEqual(signupConfirmationScreen({ pending, visitId: 2, documentId: "document-a" }), { mode: "form" })
+  assert.deepEqual(signupConfirmationScreen({ pending: null, visitId: 1, documentId: "document-b" }), { mode: "form" })
+  assert.deepEqual(
+    signupConfirmationScreen({
+      pending: { message: "", visitId: 1, documentId: "document-a" },
+      visitId: 1,
+      documentId: "document-a",
+    }),
+    { mode: "form" },
+  )
+})
+
+test("an empty identities list is an already-registered signup, not a new confirmation", () => {
+  assert.equal(existingSignUpAccountMessage([]), EXISTING_ACCOUNT_MESSAGE)
+  assert.equal(existingSignUpAccountMessage([{ provider: "email" }]), null)
+  assert.equal(existingSignUpAccountMessage(undefined), null)
+  assert.equal(existingSignUpAccountMessage(null), null)
+  assert.equal(
+    authErrorMessage({ message: "User already registered" }, "sign-up"),
+    EXISTING_ACCOUNT_MESSAGE,
+  )
 })
 
 test("auth pages, the callback, and account API stay reachable without a session", () => {
