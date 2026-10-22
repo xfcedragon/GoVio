@@ -187,8 +187,29 @@ function Notice() {
   )
 }
 
+const AUTH_SCREENS = new Set(["/login", "/signup", "/forgot-password", "/reset-password"])
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { ready } = useSkipPilot()
+  const pathname = usePathname()
+  if (AUTH_SCREENS.has(pathname)) {
+    return (
+      <div className="min-h-full bg-background">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground"
+        >
+          Skip to content
+        </a>
+        <header className="border-b border-border px-4 py-3 sm:px-6">
+          <Wordmark />
+        </header>
+        <main id="main" className="mx-auto w-full max-w-md px-4 py-6 sm:px-6">
+          {children}
+        </main>
+      </div>
+    )
+  }
   return (
     <div className="flex min-h-full bg-background">
       <a
@@ -206,7 +227,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         <div className="mt-auto border-t border-sidebar-border px-4 py-3">
           <p className="text-xs leading-5 text-muted-foreground">
-            On this device. No account. Nothing syncs.
+            On this device. The ledger stays in this browser until you confirm a migration.
           </p>
         </div>
       </aside>

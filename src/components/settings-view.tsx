@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import Link from "next/link"
 import { Field, controlClass } from "@/components/field"
 import { PageHeader } from "@/components/page-header"
@@ -133,7 +133,7 @@ function SettingsForm() {
   )
 }
 
-export function SettingsView() {
+export function SettingsView({ account }: { account: ReactNode }) {
   const { data, demo, requestSample, requestClearSample, requestClearAll } = useSkipPilot()
 
   const canClear = hasLedgerContent(data) || demo
@@ -145,13 +145,17 @@ export function SettingsView() {
         description="Name and province are labels. Fuel rates price estimated fuel consumed, and the week fuel figure when that week has no fill-up. Nothing here is uploaded."
       />
 
+      {account}
+
       <SettingsForm key={settingsKey(data.settings)} />
 
       <section className="max-w-xl rounded-md border border-border bg-card p-3">
         <h2 className="text-base font-semibold">Data in this browser</h2>
         <p className="mt-1 text-sm leading-6 text-muted-foreground">
-          GoVio keeps the ledger in local storage. Receipt photos stay in this browser&apos;s IndexedDB.
-          Clearing site data, or opening another browser, starts empty. There is no account and nothing syncs.
+          GoVio keeps this ledger in local storage and receipt photos in this browser&apos;s IndexedDB.
+          Nothing is uploaded. A later migration can copy records into an account only after you review them
+          and confirm. Each saved row would then be inserted with your user id. Sample weeks are not part of
+          that move. Clearing site data, or opening another browser, starts empty.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button type="button" variant="outline" className="h-8 px-3" onClick={requestSample}>
