@@ -6,6 +6,7 @@ import {
   isExpiredAuthFailure,
   isSupabaseConfigured,
   sessionFailure,
+  siteOrigin,
   type AuthFailure,
 } from "@/lib/auth"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -43,11 +44,20 @@ async function finishExchange(
   }
 }
 
+function callbackOrigin(request: NextRequest): string {
+  return siteOrigin({
+    env: process.env,
+    host: request.headers.get("host") ?? request.nextUrl.host,
+    forwardedProto: request.headers.get("x-forwarded-proto"),
+  })
+}
+
 export async function GET(request: NextRequest) {
   const url = new URL(request.url)
-  if (!isSupabaseConfigured(process.env)) return loginError(url.origin, "unconfigured")
+  const origin = callbackOrigin(request)
+  if (!isSupabaseConfigured(process.env)) return loginError(origin, "unconfigured")
   const supabase = await createSupabaseServerClient()
-  if (!supabase) return loginError(url.origin, "unconfigured")
+  if (!supabase) return loginError(origin, "unconfigured")
 
   const code = url.searchParams.get("code")
   const tokenHash = url.searchParams.get("token_hash")
@@ -60,12 +70,12 @@ export async function GET(request: NextRequest) {
     errorCode: url.searchParams.get("error_code"),
     description: url.searchParams.get("error_description"),
   })
-  if (linkError) return loginError(url.origin, linkError)
+  if (linkError) return loginError(origin, linkError)
 
   if (code) {
     const outcome = await finishExchange(supabase.auth.exchangeCodeForSession(code))
-    if (outcome === "ok") return privateRedirect(new URL(next, url.origin))
-    return loginError(url.origin, outcome)
+    if (outcome === "ok") return privateRedirect(new URL(next, origin))
+    return loginError(origin, outcome)
   }
 
   if (tokenHash && type && OTP_TYPES.has(type)) {
@@ -77,10 +87,10 @@ export async function GET(request: NextRequest) {
     )
     if (outcome === "ok") {
       const destination = type === "recovery" ? destinationAfterAuth(requested || "/reset-password") : next
-      return privateRedirect(new URL(destination, url.origin))
+      return privateRedirect(new URL(destination, origin))
     }
-    return loginError(url.origin, outcome)
+    return loginError(origin, outcome)
   }
 
-  return loginError(url.origin, "callback")
+  return loginError(origin, "callback")
 }

@@ -36,6 +36,8 @@ When both public values are set, `src/proxy.ts` (Next.js 16 Proxy, the replaceme
 
 Copy `.env.example` to `.env.local` and fill in the real project values. Do not commit `.env.local`. Set the public variables before `npm run build` if you rely on Next inlining them for any client code. The server gate reads the public names at request time.
 
+Set `NEXT_PUBLIC_SITE_URL` to the origin people open in the browser. Local development is `http://127.0.0.1:43127`. Signup and password reset send that origin's `/auth/callback` as `emailRedirectTo` / `redirectTo`. The dev server listens on `0.0.0.0`, so an unset site URL rewrites only bind-all hosts (`0.0.0.0`, `::`) to `127.0.0.1` and keeps the port. A normal production host is left unchanged. Supabase can still replace the link with the dashboard Site URL, and an email that was already sent keeps the host it was created with.
+
 ### Dashboard steps still required
 
 The web env file is `.env.local` in the repo root. The Expo env file is `mobile/.env.local`. Neither file is committed. Do not paste keys into chat.

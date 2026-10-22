@@ -5,6 +5,7 @@
 
 export const PUBLIC_SUPABASE_URL = "NEXT_PUBLIC_SUPABASE_URL"
 export const PUBLIC_SUPABASE_ANON_KEY = "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+export const PUBLIC_SITE_URL = "NEXT_PUBLIC_SITE_URL"
 export const EXPO_SUPABASE_URL = "EXPO_PUBLIC_SUPABASE_URL"
 export const EXPO_SUPABASE_ANON_KEY = "EXPO_PUBLIC_SUPABASE_ANON_KEY"
 
@@ -212,6 +213,86 @@ export function destinationAfterAuth(value: unknown): string {
   const path = safe.split(/[?#]/)[0] || "/"
   if (AUTH_LOOP.has(path)) return "/"
   return safe
+}
+
+/** Used only when the Host header is missing or not a URL. Production hosts never fall through to this. */
+const UNUSABLE_HOST_ORIGIN = "http://127.0.0.1:43127"
+
+function isBindAllHostname(hostname: string): boolean {
+  const value = hostname.trim().toLowerCase()
+  return value === "0.0.0.0" || value === "::" || value === "[::]" || value === "*"
+}
+
+function configuredSiteOrigin(value: string): string | null {
+  if (!value) return null
+  let url: URL
+  try {
+    url = new URL(value)
+  } catch {
+    return null
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return null
+  if (url.username || url.password) return null
+  if (isBindAllHostname(url.hostname)) url.hostname = "127.0.0.1"
+  return url.origin
+}
+
+function hostForUrl(host: string): string | null {
+  const value = host.trim()
+  if (!value || /[\s/\\@,]/.test(value)) return null
+  if (value === "::" || value === "0:0:0:0:0:0:0:0") return "[::]"
+  return value
+}
+
+function originFromHost(host: string | null | undefined, forwardedProto: string | null | undefined): string {
+  const normalized = host ? hostForUrl(host) : null
+  if (!normalized) return UNUSABLE_HOST_ORIGIN
+  let url: URL
+  try {
+    url = new URL(`http://${normalized}`)
+  } catch {
+    return UNUSABLE_HOST_ORIGIN
+  }
+  const bindAll = isBindAllHostname(url.hostname)
+  if (bindAll) url.hostname = "127.0.0.1"
+  const hostname = url.hostname.toLowerCase()
+  const local = bindAll || hostname === "127.0.0.1" || hostname === "localhost" || hostname === "[::1]" || hostname === "::1"
+  url.protocol = !local && forwardedProto === "https" ? "https:" : "http:"
+  return url.origin
+}
+
+/**
+ * Origin for auth email links and the callback's next hop.
+ * `NEXT_PUBLIC_SITE_URL` wins when it is an absolute http(s) origin.
+ * If it is unset, the request host is used. Bind-all hosts (`0.0.0.0`, `::`)
+ * are rewritten to `127.0.0.1` with the same port. Any other host is kept.
+ */
+export function siteOrigin(input: {
+  env?: EnvLike
+  host?: string | null
+  forwardedProto?: string | null
+} = {}): string {
+  const configured = configuredSiteOrigin(readEnv(input.env ?? {}, PUBLIC_SITE_URL))
+  if (configured) return configured
+  return originFromHost(input.host, input.forwardedProto)
+}
+
+/** Absolute `/auth/callback` on `origin`. A next path other than `/` is kept as `next`. */
+export function authCallbackUrl(origin: string, nextPath: string): string {
+  const callback = new URL("/auth/callback", origin)
+  if (nextPath !== "/") callback.searchParams.set("next", nextPath)
+  return callback.toString()
+}
+
+/** Signup and password-reset redirect Supabase should put in the email. */
+export function emailConfirmationRedirect(input: {
+  env?: EnvLike
+  host?: string | null
+  forwardedProto?: string | null
+  nextPath?: string
+} = {}): string {
+  const nextPath = input.nextPath && input.nextPath.length > 0 ? input.nextPath : "/"
+  return authCallbackUrl(siteOrigin(input), nextPath)
 }
 
 export function firstQueryValue(value: string | string[] | undefined): string {

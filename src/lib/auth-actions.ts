@@ -6,6 +6,7 @@ import {
   asAuthFailure,
   authErrorMessage,
   destinationAfterAuth,
+  emailConfirmationRedirect,
   isExpiredAuthFailure,
   isSupabaseConfigured,
   sessionFailure,
@@ -28,19 +29,14 @@ function failed(message: string): AuthActionState {
   return { status: "error", message, fieldErrors: {} }
 }
 
-async function requestOrigin(): Promise<string> {
+async function emailRedirect(nextPath: string): Promise<string> {
   const headerList = await headers()
-  const host = headerList.get("host")
-  if (!host || /[\s/\\@,]/.test(host)) return "http://127.0.0.1:43127"
-  const local = host.startsWith("127.0.0.1") || host.startsWith("localhost")
-  const proto = !local && headerList.get("x-forwarded-proto") === "https" ? "https" : "http"
-  return `${proto}://${host}`
-}
-
-function callbackUrl(origin: string, nextPath: string): string {
-  const callback = new URL("/auth/callback", origin)
-  if (nextPath !== "/") callback.searchParams.set("next", nextPath)
-  return callback.toString()
+  return emailConfirmationRedirect({
+    env: process.env,
+    host: headerList.get("host"),
+    forwardedProto: headerList.get("x-forwarded-proto"),
+    nextPath,
+  })
 }
 
 async function clientOrConfigError() {
@@ -62,15 +58,15 @@ export async function signUpAction(_state: AuthActionState, formData: FormData):
   const { supabase, error: configError } = await clientOrConfigError()
   if (!supabase) return configError ?? failed("Account sign-in is not configured.")
 
-  const origin = await requestOrigin()
   const next = destinationAfterAuth(formData.get("next"))
+  const emailRedirectTo = await emailRedirect(next)
   let data: Awaited<ReturnType<typeof supabase.auth.signUp>>["data"]
   try {
     const result = await supabase.auth.signUp({
       email: input.email.trim(),
       password: input.password,
       options: {
-        emailRedirectTo: callbackUrl(origin, next),
+        emailRedirectTo,
         data: { full_name: input.fullName.trim() },
       },
     })
@@ -140,10 +136,10 @@ export async function forgotPasswordAction(_state: AuthActionState, formData: Fo
   const { supabase, error: configError } = await clientOrConfigError()
   if (!supabase) return configError ?? failed("Account sign-in is not configured.")
 
-  const origin = await requestOrigin()
+  const redirectTo = await emailRedirect("/reset-password")
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: callbackUrl(origin, "/reset-password"),
+      redirectTo,
     })
     if (error) return failed(authErrorMessage(error, "reset"))
   } catch (error) {

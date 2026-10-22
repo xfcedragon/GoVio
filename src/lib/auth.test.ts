@@ -5,7 +5,9 @@ import {
   authErrorMessage,
   authLinkErrorCode,
   destinationAfterAuth,
+  emailConfirmationRedirect,
   initialAuthState,
+  siteOrigin,
   isExpoSupabaseConfigured,
   isSupabaseConfigured,
   loginBanner,
@@ -352,6 +354,66 @@ test("signed-in login and signup follow a safe next path", () => {
     assert.equal(decision.search, "")
     assert.equal(decision.hash, "")
   }
+})
+
+test("auth confirmation redirects rewrite bind-all hosts and honor the site origin", () => {
+  assert.equal(
+    emailConfirmationRedirect({ host: "0.0.0.0:43127" }),
+    "http://127.0.0.1:43127/auth/callback",
+  )
+  assert.equal(
+    emailConfirmationRedirect({ host: "[::]:43127" }),
+    "http://127.0.0.1:43127/auth/callback",
+  )
+  assert.equal(
+    emailConfirmationRedirect({ host: "::", nextPath: "/" }),
+    "http://127.0.0.1/auth/callback",
+  )
+  assert.equal(
+    emailConfirmationRedirect({ host: "0.0.0.0:43127", nextPath: "/reset-password" }),
+    "http://127.0.0.1:43127/auth/callback?next=%2Freset-password",
+  )
+  assert.equal(siteOrigin({ host: "0.0.0.0:43127" }), "http://127.0.0.1:43127")
+})
+
+test("an explicit NEXT_PUBLIC_SITE_URL wins over the request host", () => {
+  const env = { NEXT_PUBLIC_SITE_URL: "https://ledger.example.com" }
+  assert.equal(
+    emailConfirmationRedirect({ env, host: "0.0.0.0:43127" }),
+    "https://ledger.example.com/auth/callback",
+  )
+  assert.equal(
+    emailConfirmationRedirect({ env, host: "ledger.internal", forwardedProto: "https" }),
+    "https://ledger.example.com/auth/callback",
+  )
+  assert.equal(
+    emailConfirmationRedirect({
+      env: { NEXT_PUBLIC_SITE_URL: "http://127.0.0.1:43127" },
+      host: "0.0.0.0:43127",
+    }),
+    "http://127.0.0.1:43127/auth/callback",
+  )
+  assert.equal(
+    siteOrigin({ env: { NEXT_PUBLIC_SITE_URL: "http://0.0.0.0:3000/ignored" }, host: "app.example.com" }),
+    "http://127.0.0.1:3000",
+  )
+})
+
+test("a normal production host is not rewritten to 127.0.0.1", () => {
+  assert.equal(
+    emailConfirmationRedirect({ host: "ledger.example.com", forwardedProto: "https" }),
+    "https://ledger.example.com/auth/callback",
+  )
+  assert.equal(
+    emailConfirmationRedirect({ host: "app.example.com:8443", forwardedProto: "https" }),
+    "https://app.example.com:8443/auth/callback",
+  )
+  assert.equal(
+    emailConfirmationRedirect({ host: "localhost:43127" }),
+    "http://localhost:43127/auth/callback",
+  )
+  assert.equal(siteOrigin({ host: "ledger.example.com", forwardedProto: "https" }), "https://ledger.example.com")
+  assert.equal(siteOrigin({ host: "127.0.0.1:43127", forwardedProto: "https" }), "http://127.0.0.1:43127")
 })
 
 test("auth pages, the callback, and account API stay reachable without a session", () => {
