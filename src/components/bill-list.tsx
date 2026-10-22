@@ -29,7 +29,7 @@ export function BillList({
         const phrase = todayIso ? duePhrase(bill.dueDate, todayIso) : `Due ${formatMonthDay(bill.dueDate)}`
         const overdue = todayIso !== null && !bill.paid && bill.dueDate < todayIso
         return (
-          <li key={bill.id} className="flex items-start justify-between gap-3 px-5 py-3.5">
+          <li key={bill.id} className="flex items-start justify-between gap-3 px-3 py-2">
             <div className="min-w-0">
               <p className="truncate font-medium text-foreground">{bill.name}</p>
               <p className={`mt-0.5 text-xs ${overdue ? "text-warning" : "text-muted-foreground"}`}>

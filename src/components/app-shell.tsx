@@ -2,15 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import {
-  Car,
-  Fuel,
-  LayoutDashboard,
-  Receipt,
-  Route,
-  Settings,
-  Timer,
-} from "lucide-react"
+import { useEffect, useState } from "react"
 import {
   BillDialog,
   ConfirmDialog,
@@ -21,64 +13,143 @@ import { Button } from "@/components/ui/button"
 import { useSkipPilot } from "@/lib/store"
 import { cn } from "@/lib/utils"
 
-const NAV = [
-  { href: "/", label: "Overview", short: "Overview", icon: LayoutDashboard },
-  { href: "/shifts", label: "Shifts", short: "Shifts", icon: Route },
-  { href: "/hourly", label: "Hourly Earnings", short: "Hourly", icon: Timer },
-  { href: "/fuel", label: "Fuel", short: "Fuel", icon: Fuel },
-  { href: "/vehicle", label: "Vehicle & Tax Records", short: "Vehicle", icon: Car },
-  { href: "/bills", label: "Bills & Goals", short: "Bills", icon: Receipt },
-  { href: "/settings", label: "Settings", short: "Settings", icon: Settings },
-] as const
+type NavItem = { href: string; label: string }
+type NavEntry =
+  | { type: "link"; href: string; label: string }
+  | { type: "group"; label: string; items: NavItem[] }
 
-function isActive(pathname: string, href: string) {
-  if (href === "/") return pathname === "/"
-  return pathname === href || pathname.startsWith(`${href}/`)
+const NAV: NavEntry[] = [
+  { type: "link", href: "/", label: "Overview" },
+  {
+    type: "group",
+    label: "Work",
+    items: [
+      { href: "/shifts", label: "Shifts" },
+      { href: "/hourly", label: "Earnings" },
+      { href: "/vehicle#mileage", label: "Mileage" },
+    ],
+  },
+  {
+    type: "group",
+    label: "Vehicle",
+    items: [
+      { href: "/fuel", label: "Fuel" },
+      { href: "/vehicle#expenses", label: "Expenses" },
+      { href: "/vehicle", label: "Vehicle" },
+    ],
+  },
+  {
+    type: "group",
+    label: "Records",
+    items: [
+      { href: "/vehicle#receipts", label: "Receipts" },
+      { href: "/vehicle#annual-summary", label: "Reports" },
+      { href: "/bills", label: "Bills" },
+    ],
+  },
+  { type: "link", href: "/settings", label: "Settings" },
+]
+
+function useHash() {
+  const pathname = usePathname()
+  const [hash, setHash] = useState("")
+  useEffect(() => {
+    const read = () => setHash(window.location.hash)
+    read()
+    window.addEventListener("hashchange", read)
+    return () => window.removeEventListener("hashchange", read)
+  }, [pathname])
+  return hash
+}
+
+function isActive(pathname: string, hash: string, href: string) {
+  const [path, fragment] = href.split("#")
+  if (fragment) return pathname === path && hash === `#${fragment}`
+  if (path === "/") return pathname === "/"
+  if (path === "/vehicle") return pathname === "/vehicle" && (hash === "" || hash === "#")
+  return pathname === path || pathname.startsWith(`${path}/`)
 }
 
 function Wordmark({ compact = false }: { compact?: boolean }) {
   return (
-    <Link href="/" className="flex items-center gap-3">
-      <span className="grid size-9 place-items-center rounded-lg bg-primary/15 text-primary ring-1 ring-primary/30">
-        <Route className="size-4" aria-hidden="true" />
-      </span>
-      <span>
-        <span className="block text-[15px] font-semibold tracking-tight text-foreground">
-          Go<span className="text-primary">Vio</span>
+    <Link href="/" className="block">
+      <span className="block text-sm font-medium tracking-tight text-foreground">GoVio</span>
+      {compact ? null : (
+        <span className="mt-1 block text-xs leading-4 text-muted-foreground">
+          Know what you make. Know what it costs.
         </span>
-        {compact ? null : (
-          <span className="block text-xs leading-4 text-muted-foreground">
-            Know what you make.
-            <br />
-            Know what it costs.
-          </span>
-        )}
-      </span>
+      )}
+    </Link>
+  )
+}
+
+function NavLink({
+  href,
+  label,
+  active,
+  compact,
+}: {
+  href: string
+  label: string
+  active: boolean
+  compact: boolean
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "relative block rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
+        compact && "shrink-0 whitespace-nowrap py-1",
+        active &&
+          "bg-sidebar-accent text-foreground before:absolute before:inset-y-1.5 before:left-0 before:w-px before:bg-foreground",
+      )}
+    >
+      {label}
     </Link>
   )
 }
 
 function NavLinks({ compact = false }: { compact?: boolean }) {
   const pathname = usePathname()
+  const hash = useHash()
   return (
-    <nav aria-label="Primary" className={compact ? "flex gap-1 overflow-x-auto" : "grid gap-1"}>
-      {NAV.map((item) => {
-        const active = isActive(pathname, item.href)
-        const Icon = item.icon
+    <nav aria-label="Primary" className={compact ? "flex gap-4 overflow-x-auto" : "grid"}>
+      {NAV.map((entry) => {
+        if (entry.type === "link") {
+          return (
+            <div key={entry.href} className={compact ? "shrink-0" : "pt-3 first:pt-0"}>
+              <NavLink
+                href={entry.href}
+                label={entry.label}
+                active={isActive(pathname, hash, entry.href)}
+                compact={compact}
+              />
+            </div>
+          )
+        }
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground",
-              compact && "shrink-0 py-2",
-              active && "bg-sidebar-accent text-foreground",
-            )}
-          >
-            <Icon className={cn("size-4", active && "text-primary")} aria-hidden="true" />
-            {compact ? item.short : item.label}
-          </Link>
+          <div key={entry.label} className={compact ? "shrink-0" : "pt-4 first:pt-0"}>
+            <p
+              className={cn(
+                "px-2.5 pb-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase",
+                compact && "px-2.5",
+              )}
+            >
+              {entry.label}
+            </p>
+            <div className={compact ? "flex" : "grid"}>
+              {entry.items.map((item) => (
+                <NavLink
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  active={isActive(pathname, hash, item.href)}
+                  compact={compact}
+                />
+              ))}
+            </div>
+          </div>
         )
       })}
     </nav>
@@ -90,12 +161,12 @@ function DemoBanner() {
   if (!demo) return null
   return (
     <div className="border-b border-warning/30 bg-warning/10">
-      <div className="flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-10">
-        <p className="text-sm leading-6 text-warning">
-          <span className="font-semibold">Sample week.</span> These figures are illustrations, not your
+      <div className="flex max-w-6xl flex-col gap-2 px-4 py-2 sm:flex-row sm:items-center sm:justify-between sm:px-5 lg:px-6">
+        <p className="text-sm leading-5 text-warning">
+          <span className="font-medium">Sample week.</span> These figures are illustrations, not your
           delivery payouts. Clearing the sample restores whatever this browser had before the preview.
         </p>
-        <Button type="button" variant="outline" className="h-9 shrink-0" onClick={requestClearSample}>
+        <Button type="button" variant="outline" className="h-8 shrink-0" onClick={requestClearSample}>
           Clear sample data
         </Button>
       </div>
@@ -109,7 +180,7 @@ function Notice() {
   return (
     <div
       role="status"
-      className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full border border-border bg-popover px-4 py-2 text-sm text-popover-foreground shadow-lg"
+      className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-md border border-border bg-popover px-3 py-1.5 text-sm text-popover-foreground"
     >
       {notice}
     </div>
@@ -122,38 +193,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-full bg-background">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground"
       >
         Skip to content
       </a>
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
-        <div className="px-4 pt-6 pb-6">
+      <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
+        <div className="px-4 pt-4 pb-3">
           <Wordmark />
         </div>
-        <div className="px-3">
-          <p className="px-3 pb-2 text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
-            Ledger
-          </p>
+        <div className="px-2">
           <NavLinks />
         </div>
-        <div className="mt-auto border-t border-sidebar-border px-5 py-4">
-          <p className="text-xs font-medium text-foreground">On this device</p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            No account. Entries and receipt photos stay in this browser. Nothing syncs.
+        <div className="mt-auto border-t border-sidebar-border px-4 py-3">
+          <p className="text-xs leading-5 text-muted-foreground">
+            On this device. No account. Nothing syncs.
           </p>
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur lg:hidden">
-          <div className="flex items-center justify-between px-4 py-3">
+        <header className="sticky top-0 z-30 border-b border-border bg-background lg:hidden">
+          <div className="px-4 pt-3">
             <Wordmark compact />
           </div>
-          <div className="px-2 pb-2">
+          <div className="px-2 py-2">
             <NavLinks compact />
           </div>
         </header>
         <DemoBanner />
-        <main id="main" aria-busy={!ready} className="w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+        <main id="main" aria-busy={!ready} className="w-full max-w-6xl flex-1 px-4 py-4 sm:px-5 lg:px-6 lg:py-5">
           {children}
         </main>
       </div>

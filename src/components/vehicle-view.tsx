@@ -1,12 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { Car, FileDown, Pencil, Plus, Printer, Trash2 } from "lucide-react"
+import { FileDown, Pencil, Plus, Printer, Trash2 } from "lucide-react"
 import { EmptyState } from "@/components/empty-state"
-import { controlClass } from "@/components/field"
+import { controlClass, textLinkClass } from "@/components/field"
 import { Numeric } from "@/components/numeric"
 import { PageHeader } from "@/components/page-header"
-import { StatCard } from "@/components/stat-card"
+import { FigureRow } from "@/components/stat-card"
 import { Button } from "@/components/ui/button"
 import { ExpenseDialog, MileageDialog, VehicleDialog } from "@/components/vehicle-dialogs"
 import { formatISODate, formatWeekdayDate } from "@/lib/dates"
@@ -88,11 +88,11 @@ function PhotoButton({ id, name }: { id: string; name: string }) {
   if (missing) return <span className="text-xs text-warning">Photo not in this browser</span>
   return (
     <span className="inline-flex flex-col gap-2">
-      <button type="button" className="text-left text-primary hover:underline" onClick={() => void openPhoto()}>
+      <button type="button" className={`text-left ${textLinkClass}`} onClick={() => void openPhoto()}>
         {name || id}
       </button>
       {url ? (
-        <a href={url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
+        <a href={url} target="_blank" rel="noreferrer" className={`text-xs ${textLinkClass}`}>
           Open stored photo
         </a>
       ) : null}
@@ -213,18 +213,17 @@ export function VehicleView() {
     <div className="space-y-6">
       <div className="no-print space-y-6">
         <PageHeader
-          eyebrow="Vehicle & Tax Records"
-          title="What you drove and what you kept"
-          description="Kilometres, receipts, and fuel for the calendar year. Records stay in this browser. Receipt photos stay in this browser's IndexedDB. Nothing syncs to another device. Clearing site data deletes both."
+          title="Vehicle"
+          description="Kilometres, receipts, and fuel for the calendar year. Records stay in this browser. Receipt photos stay in this browser's IndexedDB. Nothing syncs. Clearing site data deletes both."
           actions={
             <>
-              <Button type="button" variant="outline" className="h-10 px-3.5" onClick={() => setVehicleEditor(null)}>
+              <Button type="button" variant="outline" className="h-8 px-3" onClick={() => setVehicleEditor(null)}>
                 <Plus /> Add vehicle
               </Button>
-              <Button type="button" variant="outline" className="h-10 px-3.5" onClick={() => setMileageEditor(null)}>
+              <Button type="button" variant="outline" className="h-8 px-3" onClick={() => setMileageEditor(null)}>
                 <Plus /> Add mileage
               </Button>
-              <Button type="button" className="h-10 px-3.5" onClick={() => setExpenseEditor(null)}>
+              <Button type="button" className="h-8 px-3" onClick={() => setExpenseEditor(null)}>
                 <Plus /> Add receipt
               </Button>
             </>
@@ -259,41 +258,58 @@ export function VehicleView() {
           ) : null}
         </div>
 
-        <p className="rounded-2xl border border-border bg-card px-5 py-4 text-sm leading-6 text-muted-foreground">
+        <p className="rounded-md border border-border bg-card px-3 py-3 text-sm leading-5 text-muted-foreground">
           {DISCLAIMER} Claimed totals add only amounts you marked claimed. Unreviewed and not-claimed amounts stay out. Wear estimates and estimated fuel consumed stay out as well.
         </p>
 
         {summary ? (
           <>
-            <section aria-label="Year totals" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <StatCard label="Kilometres driven" value={formatKm(summary.recordedKilometres)} hint="Recorded trips after overlap checks. Estimated kilometres are not invented." />
-              <StatCard label="Business kilometres" value={formatKm(summary.businessKilometres)} hint="Only trips you marked business, plus the business portion of mixed trips." />
-              <StatCard label="Personal kilometres" value={formatKm(summary.personalKilometres)} hint="Only trips you marked personal. The remainder is not assumed." />
-              <StatCard
-                label="Business-use percentage"
-                value={businessUseValue}
-                hint={
-                  summary.businessUse.available
-                    ? summary.businessUse.explanation
-                    : "Unavailable until the year has odometer bookends, or you mark a complete classified log."
-                }
-              />
-              <StatCard label="Gross delivery income" value={formatCad(summary.grossDeliveryIncome)} hint="Shift payouts dated in this year. Gross, before expenses." featured />
-              <StatCard label="Claimed vehicle amounts" value={formatCad(summary.claimedTotal)} hint="Your claimed classifications only. Not a CRA determination." tone={summary.claimedTotal > 0 ? "default" : "default"} />
+            <section aria-label="Year totals" className="rounded-md border border-border bg-card px-3 py-3">
+              <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Year</h2>
+              <div className="mt-3">
+                <FigureRow
+                  columns="grid-cols-2 lg:grid-cols-3"
+                  items={[
+                    { label: "Kilometres driven", value: formatKm(summary.recordedKilometres), hint: "Recorded trips after overlap checks. Estimated kilometres are not invented." },
+                    { label: "Business kilometres", value: formatKm(summary.businessKilometres), hint: "Only trips you marked business, plus the business portion of mixed trips." },
+                    { label: "Personal kilometres", value: formatKm(summary.personalKilometres), hint: "Only trips you marked personal. The remainder is not assumed." },
+                    {
+                      label: "Business-use percentage",
+                      value: summary.businessUse.available ? businessUseValue : "Unavailable",
+                      tone: summary.businessUse.available ? "default" : "muted",
+                      hint: summary.businessUse.available
+                        ? summary.businessUse.explanation
+                        : "Unavailable until the year has odometer bookends, or you mark a complete classified log.",
+                    },
+                    {
+                      label: "Gross delivery income",
+                      value: formatCad(summary.grossDeliveryIncome),
+                      tone: summary.grossDeliveryIncome > 0 ? "positive" : "default",
+                      hint: "Shift payouts dated in this year. Gross, before expenses.",
+                    },
+                    { label: "Claimed vehicle amounts", value: formatCad(summary.claimedTotal), hint: "Your claimed classifications only. Not a CRA determination." },
+                  ]}
+                />
+              </div>
+              <h2 className="mt-4 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Fuel</h2>
+              <div className="mt-3">
+                <FigureRow
+                  columns="grid-cols-2 lg:grid-cols-4"
+                  items={[
+                    { label: "Fuel cash", value: formatCad(summary.fuel.cash), hint: "Receipts and fill-ups by purchase date. A linked receipt replaces its fill-up so it is not added twice." },
+                    { label: "Litres purchased", value: summary.fuel.litresPurchased > 0 ? formatLitres(summary.fuel.litresPurchased) : "Unavailable", tone: summary.fuel.litresPurchased > 0 ? "default" : "muted", hint: "Litres on those same purchases." },
+                    { label: "Est. litres consumed", value: summary.fuel.consumedLitres === null ? "Unavailable" : formatLitres(summary.fuel.consumedLitres), tone: summary.fuel.consumedLitres === null ? "muted" : "default", hint: summary.fuel.consumedLitres === null ? "Needs recorded kilometres and an L/100 km rate." : `Estimate · ${summary.fuel.rateLabel}. Not a receipt.` },
+                    { label: "Est. fuel cost consumed", value: summary.fuel.consumedCost === null ? "Unavailable" : formatCad(summary.fuel.consumedCost), tone: summary.fuel.consumedCost === null ? "muted" : "default", hint: "Consumed litres times the pump price. Not subtracted together with fuel cash." },
+                  ]}
+                />
+              </div>
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">{summary.fuel.note}</p>
             </section>
 
-            <section aria-label="Fuel accounting" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <StatCard label="Fuel cash" value={formatCad(summary.fuel.cash)} hint="Receipts and fill-ups by purchase date. A linked receipt replaces its fill-up so it is not added twice." />
-              <StatCard label="Litres purchased" value={summary.fuel.litresPurchased > 0 ? formatLitres(summary.fuel.litresPurchased) : "—"} hint="Litres on those same purchases." />
-              <StatCard label="Estimated litres consumed" value={summary.fuel.consumedLitres === null ? "—" : formatLitres(summary.fuel.consumedLitres)} hint={summary.fuel.consumedLitres === null ? "Needs recorded kilometres and an L/100 km rate." : `Estimate · ${summary.fuel.rateLabel}. Not a receipt.`} />
-              <StatCard label="Estimated fuel cost consumed" value={summary.fuel.consumedCost === null ? "—" : formatCad(summary.fuel.consumedCost)} hint="Consumed litres times the pump price. Not subtracted together with fuel cash." />
-            </section>
-            <p className="text-xs leading-5 text-muted-foreground">{summary.fuel.note}</p>
-
-            <section className="overflow-hidden rounded-2xl border border-border bg-card">
-              <div className="flex items-end justify-between gap-3 px-5 py-4">
+            <section id="expenses" className="overflow-hidden rounded-md border border-border bg-card">
+              <div className="flex items-end justify-between gap-3 border-b border-border px-3 py-2">
                 <div>
-                  <h2 className="text-base font-semibold">Vehicle expenses</h2>
+                  <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Expenses</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Cash is what was recorded. Claimed is only what you marked claimed. Maintenance cash this year: {formatCad(summary.maintenanceCash)}.
                   </p>
@@ -324,7 +340,7 @@ export function VehicleView() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-border bg-card px-5 py-4">
+            <section className="rounded-md border border-border bg-card px-5 py-4">
               <h2 className="text-base font-semibold">Wear and operating cost</h2>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
                 Estimates. They are not included in the claimed total. Wear uses {summary.wear.baseLabel}
@@ -353,7 +369,7 @@ export function VehicleView() {
             </section>
 
             {summary.warnings.length > 0 ? (
-              <section className="rounded-2xl border border-warning/30 bg-warning/10 px-5 py-4">
+              <section className="rounded-md border border-warning/30 bg-warning/10 px-5 py-4">
                 <h2 className="text-base font-semibold text-warning">Missing records and estimates</h2>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-warning">
                   {summary.warnings.map((warning) => (
@@ -373,13 +389,12 @@ export function VehicleView() {
           <p className="text-sm text-muted-foreground">The year filter uses the date on this device. Totals appear once that date is available.</p>
         )}
 
-        <section className="rounded-2xl border border-border bg-card">
+        <section className="rounded-md border border-border bg-card">
           <div className="flex items-center justify-between px-5 py-4">
             <h2 className="text-base font-semibold">Vehicles</h2>
           </div>
           {data.vehicles.length === 0 ? (
             <EmptyState
-              icon={Car}
               title="No vehicle yet"
               body="Add the car you deliver in. A second vehicle can come later. Until then, shifts can still be saved without one."
               actions={<Button type="button" onClick={() => setVehicleEditor(null)}>Add vehicle</Button>}
@@ -437,13 +452,13 @@ export function VehicleView() {
           )}
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-border bg-card">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+        <section id="mileage" className="overflow-hidden rounded-md border border-border bg-card">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-2">
             <div>
-              <h2 className="text-base font-semibold">Mileage</h2>
+              <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Mileage</h2>
               <p className="mt-1 text-sm text-muted-foreground">Shifts and separate trips. A shift&apos;s kilometres are not business kilometres until you classify them.</p>
             </div>
-            <Button type="button" variant="outline" className="h-10 px-3.5" onClick={() => setMileageEditor(null)}>Add non-shift trip</Button>
+            <Button type="button" variant="outline" className="h-8 px-3" onClick={() => setMileageEditor(null)}>Add non-shift trip</Button>
           </div>
           {summary && summary.trips.length > 0 ? (
             <div className="overflow-x-auto">
@@ -502,44 +517,46 @@ export function VehicleView() {
           ) : null}
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-border bg-card">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+        <section id="receipts" className="overflow-hidden rounded-md border border-border bg-card">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-2">
             <div>
-              <h2 className="text-base font-semibold">Receipts and fill-ups</h2>
+              <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Receipts</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Fill-ups from the Fuel page stay there. They count as fuel cash unless a receipt is linked to the same purchase. Photos open only if they were stored in this browser.
               </p>
             </div>
-            <Button type="button" variant="outline" className="h-10 px-3.5" onClick={() => setExpenseEditor(null)}>Add receipt</Button>
+            <Button type="button" variant="outline" className="h-8 px-3" onClick={() => setExpenseEditor(null)}>Add receipt</Button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-left text-sm">
               <caption className="sr-only">Receipts and fill-ups</caption>
               <thead>
-                <tr className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                  <th className="px-5 py-3 font-medium">Date</th>
-                  <th className="px-3 py-3 font-medium">Record</th>
-                  <th className="px-3 py-3 font-medium">Total</th>
-                  <th className="px-3 py-3 font-medium">Classification</th>
-                  <th className="px-5 py-3 font-medium"><span className="sr-only">Actions</span></th>
+                <tr className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                  <th className="px-3 py-2 font-medium">Date</th>
+                  <th className="px-3 py-2 font-medium">Category</th>
+                  <th className="px-3 py-2 font-medium">Merchant</th>
+                  <th className="px-3 py-2 text-right font-medium">Amount</th>
+                  <th className="px-3 py-2 font-medium">Classification</th>
+                  <th className="px-3 py-2 font-medium"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
                 {data.expenses.map((expense) => (
                   <tr key={expense.id} className="border-t border-border">
-                    <td className="px-5 py-3">{formatWeekdayDate(expense.date)}</td>
-                    <td className="px-3 py-3">
-                      <p>{categoryLabel(expense.category)} · {expense.merchant || "No merchant"}</p>
+                    <td className="px-3 py-2 whitespace-nowrap">{formatWeekdayDate(expense.date)}</td>
+                    <td className="px-3 py-2">{categoryLabel(expense.category)}</td>
+                    <td className="px-3 py-2">
+                      <p>{expense.merchant || "—"}</p>
                       {expense.imageSaved && expense.imageId ? <PhotoButton id={expense.imageId} name={expense.imageName || expense.id} /> : <p className="text-xs text-muted-foreground">No photo stored</p>}
                       {expense.fuelFillId ? <p className="text-xs text-muted-foreground">Linked to fill-up {expense.fuelFillId}</p> : null}
                     </td>
-                    <td className="px-3 py-3"><Numeric>{formatCad(expense.total)} {expense.currency}</Numeric></td>
-                    <td className="px-3 py-3">{claimLabel(expense.claimStatus)}</td>
-                    <td className="px-4 py-2 text-right">
-                      <Button type="button" variant="ghost" size="icon" aria-label={`Edit receipt ${expense.date}`} onClick={() => setExpenseEditor(expense)}>
+                    <td className="px-3 py-2 text-right"><Numeric>{formatCad(expense.total)} {expense.currency}</Numeric></td>
+                    <td className="px-3 py-2">{claimLabel(expense.claimStatus)}</td>
+                    <td className="px-2 py-1 text-right">
+                      <Button type="button" variant="ghost" size="icon-sm" aria-label={`Edit receipt ${expense.date}`} onClick={() => setExpenseEditor(expense)}>
                         <Pencil />
                       </Button>
-                      <Button type="button" variant="ghost" size="icon" aria-label={`Delete receipt ${expense.date}`} onClick={() => setPendingDelete({ type: "expense", expense })}>
+                      <Button type="button" variant="ghost" size="icon-sm" aria-label={`Delete receipt ${expense.date}`} onClick={() => setPendingDelete({ type: "expense", expense })}>
                         <Trash2 />
                       </Button>
                     </td>
@@ -547,13 +564,14 @@ export function VehicleView() {
                 ))}
                 {data.fuel.map((fill) => (
                   <tr key={fill.id} className="border-t border-border">
-                    <td className="px-5 py-3">{formatWeekdayDate(fill.date)}</td>
-                    <td className="px-3 py-3">
-                      Ledger fill-up · {fill.station || "No station"} · {formatLitres(fill.litres)}
-                      <p className="text-xs text-muted-foreground">Cash record from the Fuel page. Not deleted when you add a linked receipt.</p>
+                    <td className="px-3 py-2 whitespace-nowrap">{formatWeekdayDate(fill.date)}</td>
+                    <td className="px-3 py-2">Fuel</td>
+                    <td className="px-3 py-2">
+                      {fill.station || "—"}
+                      <p className="text-xs text-muted-foreground">{formatLitres(fill.litres)} · cash from the Fuel page</p>
                     </td>
-                    <td className="px-3 py-3"><Numeric>{formatCad(fill.total)}</Numeric></td>
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-2 text-right"><Numeric>{formatCad(fill.total)}</Numeric></td>
+                    <td className="px-3 py-2">
                       <select
                         className={controlClass}
                         aria-label={`Classification for fill-up on ${fill.date}`}
@@ -573,7 +591,7 @@ export function VehicleView() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-border bg-card">
+        <section className="rounded-md border border-border bg-card">
           <div className="px-5 py-4">
             <h2 className="text-base font-semibold">History</h2>
             <label className="mt-3 grid gap-1.5 text-sm">
@@ -617,7 +635,7 @@ export function VehicleView() {
       </div>
 
       {summary ? (
-        <article id="annual-summary" className="space-y-4 rounded-2xl border border-border bg-card px-5 py-5">
+        <article id="annual-summary" className="space-y-4 rounded-md border border-border bg-card px-5 py-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-xl font-semibold">Annual summary · {summary.year}</h2>
@@ -627,12 +645,12 @@ export function VehicleView() {
               <Button
                 type="button"
                 variant="outline"
-                className="h-10 px-3.5"
+                className="h-8 px-3"
                 onClick={() => downloadCsv(`govio-${summary.year}-records.csv`, annualRecordsCsv(summary, { expenses: data.expenses, fuel: data.fuel }))}
               >
                 <FileDown /> Download CSV
               </Button>
-              <Button type="button" className="h-10 px-3.5" onClick={() => window.print()}>
+              <Button type="button" className="h-8 px-3" onClick={() => window.print()}>
                 <Printer /> Print / Save as PDF
               </Button>
             </div>
@@ -743,7 +761,7 @@ export function VehicleView() {
       <div className="no-print">
         {pendingDelete ? (
           <div className="fixed inset-0 z-40 grid place-items-center bg-black/70 px-4">
-            <div className="w-full max-w-md rounded-xl bg-popover p-4 text-popover-foreground ring-1 ring-foreground/10" role="dialog" aria-modal="true" aria-labelledby="delete-title">
+            <div className="w-full max-w-md rounded-md bg-popover p-4 text-popover-foreground ring-1 ring-border" role="dialog" aria-modal="true" aria-labelledby="delete-title">
               <h2 id="delete-title" className="text-base font-semibold">
                 {pendingDelete.type === "vehicle" ? "Remove this vehicle?" : pendingDelete.type === "mileage" ? "Delete this mileage entry?" : "Delete this receipt?"}
               </h2>

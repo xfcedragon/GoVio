@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils"
 
 const tones = {
   default: "text-foreground",
-  positive: "text-primary",
+  positive: "text-positive",
   warning: "text-warning",
   muted: "text-muted-foreground",
 } as const

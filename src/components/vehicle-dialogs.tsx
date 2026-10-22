@@ -701,7 +701,7 @@ function ExpenseForm({
       {expense?.imageSaved && !removeImage && !file ? (
         <p className="text-xs text-muted-foreground">
           Stored photo: {expense.imageName || expense.id}. It can be opened from the receipt list.
-          <button type="button" className="ml-2 text-primary hover:underline" onClick={() => { setRemoveImage(true); setHash(null) }}>
+          <button type="button" className="ml-2 text-foreground underline decoration-white/25 underline-offset-2 hover:decoration-foreground" onClick={() => { setRemoveImage(true); setHash(null) }}>
             Remove photo
           </button>
         </p>

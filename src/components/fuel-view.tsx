@@ -1,13 +1,14 @@
 "use client"
 
 import Link from "next/link"
-import { Fuel, Pencil, Trash2 } from "lucide-react"
+import { Pencil, Trash2 } from "lucide-react"
 import { EmptyState } from "@/components/empty-state"
+import { textLinkClass } from "@/components/field"
 import { PageHeader } from "@/components/page-header"
 import { Numeric } from "@/components/numeric"
-import { StatCard } from "@/components/stat-card"
+import { FigureRow } from "@/components/stat-card"
 import { Button } from "@/components/ui/button"
-import { formatWeekdayDate } from "@/lib/dates"
+import { formatMonthDay, formatWeekdayDate } from "@/lib/dates"
 import { formatCad, formatKm, formatLitres } from "@/lib/format"
 import { distanceFuelEstimate, fuelMethodLabel } from "@/lib/metrics"
 import { useSkipPilot } from "@/lib/store"
@@ -22,112 +23,119 @@ export function FuelView() {
         .filter((fill) => fill.date >= metrics.weekStartIso && fill.date <= metrics.weekEndIso)
         .reduce((sum, fill) => sum + fill.total, 0)
     : 0
+  const loggedKnown = metrics !== null && logged > 0
+  const weekFigureKnown = metrics !== null && metrics.week.fuelMethod !== "none"
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
-        eyebrow="Fuel"
-        title="What the week cost to drive"
-        description="A fill-up logged this week is used as the fuel cost. If the week has none, GoVio can estimate from kilometres once you save a vehicle figure."
+        title="Fuel"
+        description="A fill-up is cash paid at the pump. Estimated fuel consumed is kilometres × L/100 km × pump price. They are not the same figure."
         actions={
-          <Button type="button" className="h-10 px-3.5" onClick={() => openFuel()}>
+          <Button type="button" className="h-8 px-3" onClick={() => openFuel()}>
             Log fill-up
           </Button>
         }
       />
 
-      <section aria-label="Fuel summary" className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <StatCard
-          label="Used for net pay"
-          value={!metrics || metrics.week.fuelMethod === "none" ? "—" : formatCad(metrics.week.fuelCost)}
-          hint={metrics ? fuelMethodLabel(metrics.week.fuelMethod) : "Log a fill-up, or set L/100 km and a pump price"}
-        />
-        <StatCard
-          label="Fill-ups this week"
-          value={metrics && logged > 0 ? formatCad(logged) : "—"}
-          hint={
-            !metrics
-              ? "Dated this week"
-              : logged > 0
-                ? "Sum of receipts dated this week"
-                : "No receipt dated this week"
-          }
-        />
-        <StatCard
-          label="Distance estimate"
-          value={estimate === null ? "—" : formatCad(estimate)}
-          hint={
-            !metrics
-              ? "Set L/100 km and a pump price"
-              : estimate === null
-                ? `${formatKm(metrics.week.kilometres)} this week · set L/100 km and a pump price`
-                : `${formatKm(metrics.week.kilometres)} × ${data.settings.litresPer100km} L/100 km`
-          }
+      <section aria-label="Fuel summary" className="rounded-md border border-border bg-card px-3 py-3">
+        <FigureRow
+          columns="grid-cols-1 sm:grid-cols-3"
+          items={[
+            {
+              label: "Fuel purchases",
+              value: loggedKnown ? formatCad(logged) : metrics ? "Unavailable" : "—",
+              tone: loggedKnown ? "default" : "muted",
+              hint: loggedKnown ? "Sum of receipts dated this week" : "No receipt dated this week",
+            },
+            {
+              label: "Est. fuel consumed",
+              value: estimate === null ? (metrics ? "Unavailable" : "—") : formatCad(estimate),
+              tone: "muted",
+              hint: metrics
+                ? estimate === null
+                  ? `${formatKm(metrics.week.kilometres)} this week · set L/100 km and a pump price`
+                  : `${formatKm(metrics.week.kilometres)} × ${data.settings.litresPer100km} L/100 km`
+                : "Set L/100 km and a pump price",
+            },
+            {
+              label: "Week fuel figure",
+              value: weekFigureKnown && metrics ? formatCad(metrics.week.fuelCost) : metrics ? "Unavailable" : "—",
+              tone: "muted",
+              hint: metrics ? fuelMethodLabel(metrics.week.fuelMethod) : "Log a fill-up, or set L/100 km and a pump price",
+            },
+          ]}
         />
       </section>
 
-      <section className="rounded-2xl border border-border bg-card px-5 py-4 text-sm leading-6 text-muted-foreground">
-        <h2 className="text-base font-semibold text-foreground">How the estimate is chosen</h2>
+      <section className="rounded-md border border-border bg-card px-3 py-3 text-sm leading-5 text-muted-foreground">
+        <h2 className="text-[11px] font-medium tracking-wide text-foreground uppercase">How the week figure is chosen</h2>
         <ol className="mt-2 list-decimal space-y-1 pl-5">
-          <li>If a fill-up is dated this week, that receipt total is the fuel cost.</li>
+          <li>If a fill-up is dated this week, that receipt total is the week fuel figure.</li>
           <li>Otherwise, kilometres × your L/100 km × your pump price, when both rates are saved.</li>
           <li>
-            Earnings after fuel, on Overview, subtracts whichever figure is active.{" "}
-            <Link href="/settings" className="text-primary hover:underline">
-              Edit the vehicle rates
+            Overview keeps fuel purchases and estimated fuel consumed on separate lines. Estimated net subtracts only
+            the consumption estimate. A missing estimate stays unavailable.{" "}
+            <Link href="/settings" className={textLinkClass}>
+              Vehicle rates
             </Link>
             .
           </li>
           <li>
-            A fill-up is cash paid at the pump. It is not the same as fuel consumed on a shift.{" "}
-            <Link href="/vehicle" className="text-primary hover:underline">
-              Vehicle & Tax Records
+            A fill-up is not fuel burned on a shift.{" "}
+            <Link href="/vehicle#receipts" className={textLinkClass}>
+              Receipts
             </Link>{" "}
-            keeps those figures apart for the year. Linking a receipt there to this fill-up counts the purchase once.
+            keep the year&apos;s purchases. Linking a receipt there to this fill-up counts the purchase once.
           </li>
         </ol>
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-border bg-card">
+      <section className="overflow-hidden rounded-md border border-border bg-card">
+        <div className="border-b border-border px-3 py-2">
+          <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Fuel</h2>
+        </div>
         {fills.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[680px] text-left text-sm">
+            <table className="w-full min-w-[640px] text-left text-sm">
               <caption className="sr-only">Fuel fill-ups</caption>
               <thead>
-                <tr className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                  <th className="px-5 py-3 font-medium">Date</th>
-                  <th className="px-3 py-3 font-medium">Litres</th>
-                  <th className="px-3 py-3 font-medium">Price</th>
-                  <th className="px-3 py-3 font-medium">Total</th>
-                  <th className="px-3 py-3 font-medium">Station</th>
-                  <th className="px-5 py-3 text-right font-medium">
+                <tr className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                  <th className="px-3 py-2 font-medium">Date</th>
+                  <th className="px-3 py-2 font-medium">Station</th>
+                  <th className="px-3 py-2 text-right font-medium">Litres</th>
+                  <th className="px-3 py-2 text-right font-medium">Price</th>
+                  <th className="px-3 py-2 text-right font-medium">Amount</th>
+                  <th className="px-3 py-2 text-right font-medium">
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {fills.map((fill) => (
-                  <tr key={fill.id} className="border-t border-border transition-colors hover:bg-white/[0.03]">
-                    <td className="px-5 py-3 font-medium">{formatWeekdayDate(fill.date)}</td>
-                    <td className="px-3 py-3">
-                      <Numeric>{formatLitres(fill.litres)}</Numeric>
+                  <tr key={fill.id} className="border-t border-border hover:bg-white/[0.03]">
+                    <td className="px-3 py-2 font-medium" title={formatWeekdayDate(fill.date)}>
+                      {formatMonthDay(fill.date)}
                     </td>
-                    <td className="px-3 py-3">
-                      <Numeric>{formatCad(fill.pricePerLitre)}/L</Numeric>
-                    </td>
-                    <td className="px-3 py-3">
-                      <Numeric>{formatCad(fill.total)}</Numeric>
-                    </td>
-                    <td className="px-3 py-3 text-muted-foreground">
+                    <td className="px-3 py-2 text-muted-foreground">
                       {fill.station || "—"}
                       {fill.odometer !== null ? ` · ${fill.odometer.toLocaleString("en-CA")} km` : ""}
                     </td>
-                    <td className="px-4 py-2 text-right">
-                      <div className="flex justify-end gap-1">
+                    <td className="px-3 py-2 text-right">
+                      <Numeric>{formatLitres(fill.litres)}</Numeric>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <Numeric>{formatCad(fill.pricePerLitre)}/L</Numeric>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <Numeric>{formatCad(fill.total)}</Numeric>
+                    </td>
+                    <td className="px-2 py-1 text-right">
+                      <div className="flex justify-end gap-0.5">
                         <Button
                           type="button"
                           variant="ghost"
-                          size="icon"
+                          size="icon-sm"
                           aria-label={`Edit fill-up on ${formatWeekdayDate(fill.date)}`}
                           onClick={() => openFuel(fill)}
                         >
@@ -136,7 +144,7 @@ export function FuelView() {
                         <Button
                           type="button"
                           variant="ghost"
-                          size="icon"
+                          size="icon-sm"
                           aria-label={`Delete fill-up on ${formatWeekdayDate(fill.date)}`}
                           onClick={() => requestDeleteFuel(fill.id)}
                         >
@@ -151,11 +159,10 @@ export function FuelView() {
           </div>
         ) : (
           <EmptyState
-            icon={Fuel}
             title="No fill-ups yet"
-            body="Enter the litres and price per litre from a receipt. That total is used for the week of the fill-up date."
+            body="Enter the litres and price per litre from a receipt. That total is cash for the week of the fill-up date."
             actions={
-              <Button type="button" className="h-10 px-3.5" onClick={() => openFuel()}>
+              <Button type="button" className="h-8 px-3" onClick={() => openFuel()}>
                 Log fill-up
               </Button>
             }

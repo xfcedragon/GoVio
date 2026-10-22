@@ -2,13 +2,13 @@
 
 import { useId, useMemo, useState } from "react"
 import Link from "next/link"
-import { Pencil, Timer, Trash2 } from "lucide-react"
+import { Pencil, Trash2 } from "lucide-react"
 import { EmptyState } from "@/components/empty-state"
-import { controlClass, Field } from "@/components/field"
+import { controlClass, Field, textLinkClass } from "@/components/field"
 import { Numeric } from "@/components/numeric"
 import { PageHeader } from "@/components/page-header"
 import { SegmentedControl } from "@/components/segmented-control"
-import { StatCard } from "@/components/stat-card"
+import { FigureRow } from "@/components/stat-card"
 import { Button } from "@/components/ui/button"
 import { formatMonthDay, formatTime, formatWeekdayDate } from "@/lib/dates"
 import { countLabel, formatCad, formatHours, formatKm } from "@/lib/format"
@@ -32,7 +32,7 @@ const PERIOD_OPTIONS: { value: HourlyPeriod; label: string }[] = [
 ]
 
 function perHour(value: number | null): string {
-  if (value === null) return "—"
+  if (value === null) return "Unavailable"
   return `${formatCad(value)}/h`
 }
 
@@ -175,7 +175,7 @@ function HourlyDayChart({ days }: { days: HourlyDayBar[] }) {
                 x2={width - padRight}
                 y1={y}
                 y2={y}
-                stroke="rgb(255 255 255 / 12%)"
+                stroke="rgb(255 255 255 / 8%)"
               />
               <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--muted-foreground)" fontSize="10">
                 {formatCad(value)}
@@ -199,7 +199,7 @@ function HourlyDayChart({ days }: { days: HourlyDayBar[] }) {
                   x={x + barWidth / 2}
                   y={Math.max(12, y - 6)}
                   textAnchor="middle"
-                  fill="var(--foreground)"
+                  fill="var(--muted-foreground)"
                   fontSize="10"
                 >
                   {formatCad(day.grossHourly)}
@@ -210,8 +210,8 @@ function HourlyDayChart({ days }: { days: HourlyDayBar[] }) {
                 y={barHeight === 0 ? padTop + innerHeight - 2 : y}
                 width={barWidth}
                 height={drawnHeight}
-                rx={4}
-                fill="var(--primary)"
+                rx={1}
+                fill="var(--chart-1)"
               />
               <text
                 x={x + barWidth / 2}
@@ -347,27 +347,32 @@ export function HourlyView() {
   const hasLines = report !== null && report.lines.length > 0
   const netTone =
     report?.estimatedNetHourly == null
-      ? "default"
+      ? "muted"
       : report.estimatedNetHourly < 0
         ? "warning"
         : "positive"
   const cashTone =
     report?.cashFlowAfterFillups == null
-      ? "default"
+      ? "muted"
       : report.cashFlowAfterFillups < 0
         ? "warning"
         : report.cashFlowAfterFillups > 0
           ? "positive"
           : "default"
+  const worst =
+    report && report.lines.length > 0
+      ? report.lines.reduce((low, line) => (line.grossHourly < low.grossHourly ? line : low))
+      : null
+  const showWorst = worst !== null && report?.best != null && worst.id !== report.best.id
+  const hasHours = report !== null && report.shiftCount > 0
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
-        eyebrow="Hourly earnings"
-        title="What each hour paid"
-        description="Gross hourly is this period's payout divided by the hours on the clock. A 3-hour shift weighs three times a 1-hour shift. Hours come from the start and end you entered, including a finish after midnight."
+        title="Earnings"
+        description="Gross / hour is this period's eligible payout divided by hours on the clock. A longer shift weighs more. Estimated net subtracts fuel consumed only."
         actions={
-          <Button type="button" className="h-10 px-3.5" onClick={() => openShift()}>
+          <Button type="button" className="h-8 px-3" onClick={() => openShift()}>
             Add shift
           </Button>
         }
@@ -405,130 +410,143 @@ export function HourlyView() {
         ) : null}
       </div>
 
-      <section aria-label="Hourly summary" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard
-          featured
-          label="Gross per hour"
-          value={perHour(report?.grossHourly ?? null)}
-          tone={report?.grossHourly != null && report.grossHourly > 0 ? "positive" : "default"}
-          hint={grossHint(result)}
+      <section aria-label="Hourly summary" className="rounded-md border border-border bg-card px-3 py-3">
+        <FigureRow
+          columns="grid-cols-2 lg:grid-cols-4"
+          items={[
+            {
+              label: "Gross / hour",
+              value: hasHours ? perHour(report?.grossHourly ?? null) : "—",
+              tone: report?.grossHourly != null && report.grossHourly > 0 ? "positive" : "muted",
+              hint: grossHint(result),
+            },
+            {
+              label: "Net / hour",
+              value: hasHours ? perHour(report?.estimatedNetHourly ?? null) : "—",
+              tone: hasHours ? netTone : "muted",
+              hint: netHint(result),
+            },
+            {
+              label: "Total hours",
+              value: hasHours && report ? formatHours(report.totalHours) : "—",
+              tone: hasHours ? "default" : "muted",
+              hint: hasHours && report ? countLabel(report.shiftCount, "shift") : "Shifts with a real start and end",
+            },
+            {
+              label: "Total gross",
+              value: hasHours && report ? formatCad(report.totalEarnings) : "—",
+              tone: hasHours && report && report.totalEarnings > 0 ? "positive" : "muted",
+              hint:
+                report?.averagePerShift == null
+                  ? "Payout before fuel"
+                  : `Average per shift ${formatCad(report.averagePerShift)}`,
+            },
+          ]}
         />
-        <StatCard
-          label="Estimated net per hour"
-          value={perHour(report?.estimatedNetHourly ?? null)}
-          tone={netTone}
-          hint={netHint(result)}
-        />
-        <StatCard
-          label="Hours worked"
-          value={report && report.shiftCount > 0 ? formatHours(report.totalHours) : "—"}
-          hint={
-            report && report.shiftCount > 0
-              ? countLabel(report.shiftCount, "shift")
-              : "Shifts with a real start and end"
-          }
-        />
-        <StatCard
-          label="Gross earnings"
-          value={report && report.shiftCount > 0 ? formatCad(report.totalEarnings) : "—"}
-          tone={report && report.totalEarnings > 0 ? "positive" : "default"}
-          hint="Payout before fuel"
-        />
-        <StatCard
-          label="Best-paying shift"
-          value={perHour(report?.best?.grossHourly ?? null)}
-          tone={report?.best && report.best.grossHourly > 0 ? "positive" : "default"}
-          hint={
-            report?.best
-              ? `${formatWeekdayDate(report.best.date)} · ${formatTime(report.best.start)} – ${formatTime(report.best.end)} · ${formatCad(report.best.earnings)} over ${formatHours(report.best.hours)}`
-              : "Highest gross hourly rate in this period"
-          }
-        />
-        <StatCard
-          label="Average per shift"
-          value={report?.averagePerShift == null ? "—" : formatCad(report.averagePerShift)}
-          hint="Gross payout ÷ shifts with usable hours"
-        />
+        <div className="mt-3 border-t border-border pt-3">
+          <FigureRow
+            columns="grid-cols-1 sm:grid-cols-3"
+            items={[
+              {
+                label: "Est. fuel consumed",
+                value: report ? (report.consumedFuel == null ? "Unavailable" : formatCad(report.consumedFuel)) : "—",
+                tone: report?.consumedFuel == null ? "muted" : "default",
+                hint: consumptionCardHint(result, data.settings.litresPer100km, data.settings.fuelPricePerLitre),
+              },
+              {
+                label: "Fuel purchases",
+                value: report ? (report.fillupSpend == null ? "Unavailable" : formatCad(report.fillupSpend)) : "—",
+                tone: report?.fillupSpend == null ? "muted" : "default",
+                hint:
+                  report?.fillupSpend == null
+                    ? "Cash paid at the pump. Separate from fuel consumed."
+                    : "Receipts dated in this period. Separate from fuel consumed.",
+              },
+              {
+                label: "Cash after fill-ups",
+                value: report
+                  ? report.cashFlowAfterFillups == null
+                    ? "Unavailable"
+                    : formatCad(report.cashFlowAfterFillups)
+                  : "—",
+                tone: cashTone,
+                hint: cashHint(result),
+              },
+            ]}
+          />
+        </div>
       </section>
 
       {report && report.excludedCount > 0 && report.shiftCount > 0 ? (
-        <p className="text-sm leading-6 text-muted-foreground">
+        <p className="text-sm leading-5 text-muted-foreground">
           {report.excludedCount === 1
             ? "1 shift in this period is left out of these rates. It needs clock times that produce hours. Matching start and end count as 0 hours."
             : `${report.excludedCount} shifts in this period are left out of these rates. Each needs clock times that produce hours. Matching start and end count as 0 hours.`}
         </p>
       ) : null}
 
-      <section aria-label="Fuel consumed and fill-up cash flow" className="space-y-4">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <StatCard
-            label="Fuel consumed"
-            value={report?.consumedFuel == null ? "—" : formatCad(report.consumedFuel)}
-            hint={consumptionCardHint(result, data.settings.litresPer100km, data.settings.fuelPricePerLitre)}
-          />
-          <StatCard
-            label="Fill-ups in period"
-            value={report?.fillupSpend == null ? "—" : formatCad(report.fillupSpend)}
-            hint={
-              report?.fillupSpend == null
-                ? "Cash paid at the pump. Separate from fuel consumed."
-                : "Receipts dated in this period. Separate from fuel consumed."
-            }
-          />
-          <StatCard
-            label="Cash flow after fill-ups"
-            value={report?.cashFlowAfterFillups == null ? "—" : formatCad(report.cashFlowAfterFillups)}
-            tone={cashTone}
-            hint={cashHint(result)}
-          />
-        </div>
-        <div className="rounded-2xl border border-border bg-card px-5 py-4 text-sm leading-6 text-muted-foreground">
-          <h2 className="text-base font-semibold text-foreground">Three different figures</h2>
-          <ol className="mt-2 list-decimal space-y-1 pl-5">
-            <li>Gross per hour is payout divided by hours. Fuel is not part of it.</li>
-            <li>
-              Estimated net per hour subtracts fuel consumed: kilometres × your L/100 km × your pump price,
-              then divides by hours. It is an estimate of fuel burned.{" "}
-              <Link href="/settings" className="text-primary hover:underline">
-                Vehicle rates
-              </Link>{" "}
-              live in Settings.
-            </li>
-            <li>
-              Cash flow after fill-ups subtracts receipt totals dated in this period. That is cash paid at the
-              pump. A fill-up can cover driving outside these shifts, so the receipt stays out of estimated net.
-            </li>
-          </ol>
-        </div>
+      <section className="rounded-md border border-border bg-card px-3 py-3 text-sm leading-5 text-muted-foreground">
+        <h2 className="text-[11px] font-medium tracking-wide text-foreground uppercase">Three different figures</h2>
+        <ol className="mt-2 list-decimal space-y-1 pl-5">
+          <li>Gross / hour is payout divided by hours. Fuel is not part of it.</li>
+          <li>
+            Net / hour subtracts fuel consumed: kilometres × your L/100 km × your pump price, then divides by hours.
+            It is an estimate of fuel burned.{" "}
+            <Link href="/settings" className={textLinkClass}>
+              Vehicle rates
+            </Link>{" "}
+            live in Settings.
+          </li>
+          <li>
+            Cash after fill-ups subtracts receipt totals dated in this period. That is cash paid at the pump. A
+            fill-up can cover driving outside these shifts, so the receipt stays out of estimated net.
+          </li>
+        </ol>
       </section>
 
       {hasLines && report ? (
         <>
           <div className="grid gap-4 xl:grid-cols-12">
-            <section className="overflow-hidden rounded-2xl border border-border bg-card xl:col-span-7">
-              <div className="px-5 py-4">
-                <h2 className="text-base font-semibold">Gross per hour by day</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Each bar is that day&apos;s payout divided by that day&apos;s hours.
-                </p>
+            <section className="overflow-hidden rounded-md border border-border bg-card xl:col-span-7">
+              <div className="border-b border-border px-3 py-2">
+                <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                  Gross / hour by day
+                </h2>
               </div>
               <HourlyDayChart days={report.days} />
             </section>
-            <section className="overflow-hidden rounded-2xl border border-border bg-card xl:col-span-5">
-              <div className="px-5 py-4">
-                <h2 className="text-base font-semibold">Highest gross hourly</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Ranked by each shift&apos;s own payout divided by its hours.
-                </p>
+            <section className="overflow-hidden rounded-md border border-border bg-card xl:col-span-5">
+              <div className="border-b border-border px-3 py-2">
+                <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                  Gross / hour by shift
+                </h2>
               </div>
-              <ol className="border-t border-border">
+              {report.best ? (
+                <div className={`grid ${showWorst ? "grid-cols-2" : "grid-cols-1"} border-b border-border`}>
+                  <div className="px-3 py-2">
+                    <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Best</p>
+                    <Numeric tone="positive" className="mt-1 text-sm">
+                      {perHour(report.best.grossHourly)}
+                    </Numeric>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{formatWeekdayDate(report.best.date)}</p>
+                  </div>
+                  {showWorst && worst ? (
+                    <div className="border-l border-border px-3 py-2">
+                      <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Worst</p>
+                      <Numeric className="mt-1 text-sm">{perHour(worst.grossHourly)}</Numeric>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{formatWeekdayDate(worst.date)}</p>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+              <ol>
                 {report.ranking.map((line, index) => (
                   <li
                     key={line.id}
-                    className="flex items-baseline justify-between gap-3 border-t border-border px-5 py-3 first:border-t-0"
+                    className="flex items-baseline justify-between gap-3 border-t border-border px-3 py-2 first:border-t-0"
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground">
+                      <p className="text-sm text-foreground">
                         <span className="mr-2 text-muted-foreground">{index + 1}</span>
                         {formatWeekdayDate(line.date)}
                       </p>
@@ -537,7 +555,7 @@ export function HourlyView() {
                         {formatCad(line.earnings)}
                       </p>
                     </div>
-                    <Numeric tone="positive" className="shrink-0">
+                    <Numeric tone={line.grossHourly > 0 ? "positive" : "default"} className="shrink-0">
                       {perHour(line.grossHourly)}
                     </Numeric>
                   </li>
@@ -546,31 +564,32 @@ export function HourlyView() {
             </section>
           </div>
 
-          <section className="overflow-hidden rounded-2xl border border-border bg-card">
-            <div className="px-5 py-4">
-              <h2 className="text-base font-semibold">Shifts in this period</h2>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+          <section className="overflow-hidden rounded-md border border-border bg-card">
+            <div className="border-b border-border px-3 py-2">
+              <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                Shifts in this period
+              </h2>
+              <p className="mt-1 text-xs leading-4 text-muted-foreground">
                 Estimated net on a row is that shift&apos;s payout minus its kilometres × L/100 km × pump price,
-                divided by its hours. A row with no kilometres shows — because that model has no distance to
-                price. Those hours still count in the period totals.
+                divided by its hours. A row with no kilometres shows Unavailable. Those hours still count in the
+                period totals.
               </p>
             </div>
             <HourlyTable lines={report.lines} ratesReady={ratesReady} />
           </section>
         </>
       ) : (
-        <section className="overflow-hidden rounded-2xl border border-border bg-card">
+        <section className="overflow-hidden rounded-md border border-border bg-card">
           <EmptyState
-            icon={Timer}
             title={empty.title}
             body={empty.body}
             actions={
               <>
-                <Button type="button" className="h-10 px-3.5" onClick={() => openShift()}>
+                <Button type="button" className="h-8 px-3" onClick={() => openShift()}>
                   Add shift
                 </Button>
                 {report && data.shifts.length > 0 && period !== "all" ? (
-                  <Button type="button" variant="outline" className="h-10 px-3.5" onClick={() => setPeriod("all")}>
+                  <Button type="button" variant="outline" className="h-8 px-3" onClick={() => setPeriod("all")}>
                     Show all time
                   </Button>
                 ) : null}

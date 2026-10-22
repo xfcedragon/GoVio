@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { Receipt } from "lucide-react"
 import { BillList } from "@/components/bill-list"
 import { EmptyState } from "@/components/empty-state"
 import { PageHeader } from "@/components/page-header"
@@ -41,7 +40,7 @@ function TargetForm({ stored }: { stored: number }) {
     <form
       id="weekly-target"
       onSubmit={saveTarget}
-      className="rounded-2xl border border-border bg-card p-5 lg:col-span-2"
+      className="rounded-md border border-border bg-card p-3 lg:col-span-2"
     >
       <h2 className="text-base font-semibold">Weekly income target</h2>
       <p className="mt-1 text-sm leading-6 text-muted-foreground">
@@ -65,7 +64,7 @@ function TargetForm({ stored }: { stored: number }) {
           {error}
         </p>
       ) : null}
-      <Button type="submit" className="mt-4 h-10 px-3.5" disabled={!dirty && !error}>
+      <Button type="submit" className="mt-4 h-8 px-3" disabled={!dirty && !error}>
         Save target
       </Button>
     </form>
@@ -85,11 +84,10 @@ export function BillsView() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Bills & goals"
-        title="What the week needs to cover"
-        description="The target compares this week's gross payouts, before fuel. Bills are reminders you type in. Nothing is fetched from a bank."
+        title="Bills"
+        description="The weekly target is gross pay before fuel. Bills are reminders you type in. Nothing is fetched from a bank."
         actions={
-          <Button type="button" className="h-10 px-3.5" onClick={() => openBill()}>
+          <Button type="button" className="h-8 px-3" onClick={() => openBill()}>
             Add bill
           </Button>
         }
@@ -97,22 +95,21 @@ export function BillsView() {
 
       <div className="grid gap-4 lg:grid-cols-5">
         <TargetForm key={data.settings.weeklyIncomeTarget} stored={data.settings.weeklyIncomeTarget} />
-        <WeeklyTargetCard className="lg:col-span-3" />
+        <WeeklyTargetCard className="rounded-md border border-border bg-card px-3 py-3 lg:col-span-3" />
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-border bg-card">
-        <div className="px-5 py-4">
-          <h2 className="text-base font-semibold">Upcoming</h2>
+      <section className="overflow-hidden rounded-md border border-border bg-card">
+        <div className="border-b border-border px-3 py-2">
+          <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Upcoming</h2>
         </div>
         {upcoming.length > 0 ? (
           <BillList bills={upcoming} todayIso={metrics?.todayIso ?? null} />
         ) : (
           <EmptyState
-            icon={Receipt}
             title="No unpaid bills"
             body="Add a bill with a due date. Overdue ones stay in this list until you mark them paid or delete them."
             actions={
-              <Button type="button" className="h-10 px-3.5" onClick={() => openBill()}>
+              <Button type="button" className="h-8 px-3" onClick={() => openBill()}>
                 Add bill
               </Button>
             }
@@ -121,9 +118,9 @@ export function BillsView() {
       </section>
 
       {paid.length > 0 ? (
-        <section className="overflow-hidden rounded-2xl border border-border bg-card">
-          <div className="px-5 py-4">
-            <h2 className="text-base font-semibold">Paid</h2>
+        <section className="overflow-hidden rounded-md border border-border bg-card">
+          <div className="border-b border-border px-3 py-2">
+            <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Paid</h2>
           </div>
           <BillList bills={paid} todayIso={metrics?.todayIso ?? null} />
         </section>

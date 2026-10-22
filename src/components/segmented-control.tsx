@@ -20,7 +20,7 @@ export function SegmentedControl<T extends string>({
       role="group"
       aria-label={label}
       className={cn(
-        "inline-flex max-w-full flex-wrap gap-0.5 rounded-lg border border-border bg-background p-0.5",
+        "inline-flex max-w-full flex-wrap gap-0.5 rounded-md border border-border bg-background p-0.5",
         className,
       )}
     >
@@ -33,7 +33,7 @@ export function SegmentedControl<T extends string>({
             aria-pressed={selected}
             onClick={() => onChange(option.value)}
             className={cn(
-              "rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground",
+              "rounded-sm px-2.5 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground",
               selected && "bg-secondary text-foreground",
             )}
           >

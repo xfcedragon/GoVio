@@ -1,12 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Route } from "lucide-react"
 import { EmptyState } from "@/components/empty-state"
 import { PageHeader } from "@/components/page-header"
 import { SegmentedControl } from "@/components/segmented-control"
 import { ShiftsTable } from "@/components/shifts-table"
-import { StatCard } from "@/components/stat-card"
+import { FigureRow } from "@/components/stat-card"
 import { Button } from "@/components/ui/button"
 import { formatCad, formatHours, formatKm } from "@/lib/format"
 import { compareShiftsDesc, summarizeShifts } from "@/lib/metrics"
@@ -26,21 +25,21 @@ export function ShiftsView() {
   const summary = summarizeShifts(filtered)
   const weekPending = scope === "week" && metrics === null
   const emptyWeek = scope === "week" && metrics !== null && filtered.length === 0 && data.shifts.length > 0
+  const empty = summary.count === 0
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
-        eyebrow="Shifts"
-        title="Hours, kilometres, and payouts"
-        description="Each row is a shift you entered. Hours are counted from the clock times, including a finish after midnight."
+        title="Shifts"
+        description="Hours come from the clock times, including a finish after midnight."
         actions={
-          <Button type="button" className="h-10 px-3.5" onClick={() => openShift()}>
+          <Button type="button" className="h-8 px-3" onClick={() => openShift()}>
             Add shift
           </Button>
         }
       />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <SegmentedControl
           label="Shift range"
           value={scope}
@@ -51,40 +50,42 @@ export function ShiftsView() {
           ]}
         />
         <p className="text-sm text-muted-foreground">
-          {weekPending
-            ? "This week"
-            : summary.count === 0
-              ? "No shifts in this view"
-              : `${summary.count} in this view`}
+          {weekPending ? "This week" : empty ? "No shifts in this view" : `${summary.count} in this view`}
         </p>
       </div>
 
-      <section aria-label="Shift totals" className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard
-          label="Payout"
-          value={summary.count === 0 ? "—" : formatCad(summary.earnings)}
-          tone={summary.earnings > 0 ? "positive" : "default"}
-          hint={scope === "week" ? "This week" : "All logged shifts"}
-        />
-        <StatCard
-          label="Hours"
-          value={summary.count === 0 ? "—" : formatHours(summary.hours)}
-          hint={scope === "week" ? "This week" : "All logged shifts"}
-        />
-        <StatCard
-          label="Kilometres"
-          value={summary.count === 0 ? "—" : formatKm(summary.kilometres)}
-          hint={scope === "week" ? "This week" : "All logged shifts"}
+      <section aria-label="Shift totals" className="rounded-md border border-border bg-card px-3 py-3">
+        <FigureRow
+          columns="grid-cols-3"
+          items={[
+            {
+              label: "Gross",
+              value: empty ? "—" : formatCad(summary.earnings),
+              tone: empty ? "muted" : summary.earnings > 0 ? "positive" : "default",
+              hint: scope === "week" ? "This week" : "All logged shifts",
+            },
+            {
+              label: "Hours",
+              value: empty ? "—" : formatHours(summary.hours),
+              tone: empty ? "muted" : "default",
+              hint: scope === "week" ? "This week" : "All logged shifts",
+            },
+            {
+              label: "Kilometres",
+              value: empty ? "—" : formatKm(summary.kilometres),
+              tone: empty ? "muted" : "default",
+              hint: scope === "week" ? "This week" : "All logged shifts",
+            },
+          ]}
         />
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-border bg-card">
+      <section className="overflow-hidden rounded-md border border-border bg-card">
         {filtered.length > 0 ? (
           <ShiftsTable shifts={filtered} />
         ) : (
           <EmptyState
-            icon={Route}
-            title={weekPending ? "This week" : emptyWeek ? "Nothing logged this week" : "No shifts yet"}
+            title={weekPending ? "This week" : emptyWeek ? "No shifts recorded this week." : "No shifts recorded this week."}
             body={
               weekPending
                 ? "The week range uses the date on this device."
@@ -94,11 +95,11 @@ export function ShiftsView() {
             }
             actions={
               <>
-                <Button type="button" className="h-10 px-3.5" onClick={() => openShift()}>
+                <Button type="button" className="h-8 px-3" onClick={() => openShift()}>
                   Add shift
                 </Button>
                 {emptyWeek ? (
-                  <Button type="button" variant="outline" className="h-10 px-3.5" onClick={() => setScope("all")}>
+                  <Button type="button" variant="outline" className="h-8 px-3" onClick={() => setScope("all")}>
                     Show all shifts
                   </Button>
                 ) : null}

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Outfit } from "next/font/google";
+import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import { SkipPilotProvider } from "@/lib/store";
 import "./globals.css";
 
-const outfit = Outfit({
+const sans = IBM_Plex_Sans({
   subsets: ["latin"],
-  variable: "--font-outfit",
+  weight: ["400", "500", "600"],
+  variable: "--font-sans-ibm",
   display: "swap",
 });
 
@@ -30,7 +31,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en-CA"
-      className={`${outfit.variable} ${plex.variable} dark h-full antialiased`}
+      className={`${sans.variable} ${plex.variable} dark h-full antialiased`}
     >
       <body className="min-h-full bg-background text-foreground">
         <SkipPilotProvider>

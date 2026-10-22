@@ -67,9 +67,9 @@ function SettingsForm() {
   }
 
   return (
-    <form onSubmit={save} className="max-w-xl space-y-5 rounded-2xl border border-border bg-card p-5">
+    <form onSubmit={save} className="max-w-xl space-y-4 rounded-md border border-border bg-card p-3">
       <h2 className="text-base font-semibold">Profile</h2>
-      <Field label="Display name" htmlFor="settings-name" hint="Shown in the greeting. Leave blank to skip it.">
+      <Field label="Display name" htmlFor="settings-name" hint="Optional label on this device. Leave blank to skip it.">
         <Input
           className="h-10"
           value={name}
@@ -98,8 +98,8 @@ function SettingsForm() {
         Used when Hourly Earnings estimates fuel consumed, and when a week has kilometres and no fill-up. A vehicle
         profile can store its own L/100 km for the tax records. This ledger rate stays here. The weekly pay target is
         edited on{" "}
-        <Link href="/bills#weekly-target" className="text-primary hover:underline">
-          Bills & Goals
+        <Link href="/bills#weekly-target" className="text-foreground underline decoration-white/25 underline-offset-2 hover:decoration-foreground">
+          Bills
         </Link>
         .
       </p>
@@ -126,7 +126,7 @@ function SettingsForm() {
       <Field label="Default delivery platform" htmlFor="settings-platform" hint="New shifts start with this. DoorDash, Uber Eats, SkipTheDishes, Instacart, or another app. Leave it blank to keep the built-in default.">
         <Input className="h-10" value={platform} maxLength={40} onChange={(event) => setPlatform(event.target.value)} />
       </Field>
-      <Button type="submit" className="h-10 px-3.5">
+      <Button type="submit" className="h-8 px-3">
         Save settings
       </Button>
     </form>
@@ -141,27 +141,26 @@ export function SettingsView() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Settings"
-        title="This browser's ledger"
-        description="Your name and province are labels. Fuel rates are used only when a week has no fill-up. Nothing here is uploaded."
+        title="Settings"
+        description="Name and province are labels. Fuel rates price estimated fuel consumed, and the week fuel figure when that week has no fill-up. Nothing here is uploaded."
       />
 
       <SettingsForm key={settingsKey(data.settings)} />
 
-      <section className="max-w-xl rounded-2xl border border-border bg-card p-5">
+      <section className="max-w-xl rounded-md border border-border bg-card p-3">
         <h2 className="text-base font-semibold">Data in this browser</h2>
         <p className="mt-1 text-sm leading-6 text-muted-foreground">
           GoVio keeps the ledger in local storage. Receipt photos stay in this browser&apos;s IndexedDB.
           Clearing site data, or opening another browser, starts empty. There is no account and nothing syncs.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button type="button" variant="outline" className="h-10 px-3.5" onClick={requestSample}>
+          <Button type="button" variant="outline" className="h-8 px-3" onClick={requestSample}>
             {demo ? "Reload sample week" : "Preview sample week"}
           </Button>
           <Button
             type="button"
             variant="outline"
-            className="h-10 px-3.5"
+            className="h-8 px-3"
             disabled={!demo}
             onClick={requestClearSample}
           >
@@ -170,7 +169,7 @@ export function SettingsView() {
           <Button
             type="button"
             variant="destructive"
-            className="h-10 px-3.5"
+            className="h-8 px-3"
             disabled={!canClear}
             onClick={requestClearAll}
           >

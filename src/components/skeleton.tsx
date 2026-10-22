@@ -15,7 +15,7 @@ export function PageSkeleton({ cards = 4 }: { cards?: number }) {
       </div>
       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {Array.from({ length: cards }, (_, index) => (
-          <Skeleton key={index} className="h-28 rounded-2xl" />
+          <Skeleton key={index} className="h-16 rounded-md" />
         ))}
       </div>
     </div>
