@@ -3,7 +3,7 @@ import Link from "next/link";
 export default function NotFound() {
   return (
     <div className="max-w-lg rounded-2xl border border-border bg-card px-6 py-8">
-      <h1 className="text-2xl font-semibold tracking-tight">That page is not in SkipPilot</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">That page is not in GoVio</h1>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">
         The ledger has Overview, Shifts, Fuel, Bills & Goals, and Settings.
       </p>

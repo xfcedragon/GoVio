@@ -90,7 +90,7 @@ export function ShiftsView() {
                 ? "The week range uses the date on this device."
                 : emptyWeek
                   ? "Older shifts are still saved. Switch to all shifts, or add the one you just finished."
-                  : "Log a shift when you know the payout. SkipPilot does not pull numbers from SkipTheDishes."
+                  : "Log a shift when you know the payout. GoVio does not pull numbers from a delivery app."
             }
             actions={
               <>

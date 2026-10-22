@@ -628,7 +628,7 @@ export function VehicleView() {
                 type="button"
                 variant="outline"
                 className="h-10 px-3.5"
-                onClick={() => downloadCsv(`skippilot-${summary.year}-records.csv`, annualRecordsCsv(summary, { expenses: data.expenses, fuel: data.fuel }))}
+                onClick={() => downloadCsv(`govio-${summary.year}-records.csv`, annualRecordsCsv(summary, { expenses: data.expenses, fuel: data.fuel }))}
               >
                 <FileDown /> Download CSV
               </Button>

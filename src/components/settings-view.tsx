@@ -123,7 +123,7 @@ function SettingsForm() {
           />
         </Field>
       </div>
-      <Field label="Default delivery platform" htmlFor="settings-platform" hint="New shifts start with this. SkipTheDishes if you leave it blank.">
+      <Field label="Default delivery platform" htmlFor="settings-platform" hint="New shifts start with this. DoorDash, Uber Eats, SkipTheDishes, Instacart, or another app. Leave it blank to keep the built-in default.">
         <Input className="h-10" value={platform} maxLength={40} onChange={(event) => setPlatform(event.target.value)} />
       </Field>
       <Button type="submit" className="h-10 px-3.5">
@@ -151,7 +151,7 @@ export function SettingsView() {
       <section className="max-w-xl rounded-2xl border border-border bg-card p-5">
         <h2 className="text-base font-semibold">Data in this browser</h2>
         <p className="mt-1 text-sm leading-6 text-muted-foreground">
-          SkipPilot keeps the ledger in local storage. Receipt photos stay in this browser&apos;s IndexedDB.
+          GoVio keeps the ledger in local storage. Receipt photos stay in this browser&apos;s IndexedDB.
           Clearing site data, or opening another browser, starts empty. There is no account and nothing syncs.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">

@@ -4,6 +4,7 @@
  * Clearing site data removes both. Nothing is uploaded.
  */
 
+/** Kept as skippilot.receipts.v1 so receipt photos saved before the GoVio rename still open. */
 const DB_NAME = "skippilot.receipts.v1"
 const STORE = "images"
 

@@ -53,7 +53,7 @@ export type FuelType = (typeof FUEL_TYPES)[number]["id"]
 
 /**
  * User's own label for whether an amount belongs in their deductible-style total.
- * Unreviewed is the default. SkipPilot does not decide CRA eligibility.
+ * Unreviewed is the default. GoVio does not decide CRA eligibility.
  */
 export const CLAIM_STATUSES = [
   { id: "unreviewed", label: "Unreviewed" },

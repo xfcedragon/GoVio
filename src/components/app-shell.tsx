@@ -44,10 +44,14 @@ function Wordmark({ compact = false }: { compact?: boolean }) {
       </span>
       <span>
         <span className="block text-[15px] font-semibold tracking-tight text-foreground">
-          Skip<span className="text-primary">Pilot</span>
+          Go<span className="text-primary">Vio</span>
         </span>
         {compact ? null : (
-          <span className="block text-xs text-muted-foreground">Driver ledger</span>
+          <span className="block text-xs leading-4 text-muted-foreground">
+            Know what you make.
+            <br />
+            Know what it costs.
+          </span>
         )}
       </span>
     </Link>
@@ -89,7 +93,7 @@ function DemoBanner() {
       <div className="flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-10">
         <p className="text-sm leading-6 text-warning">
           <span className="font-semibold">Sample week.</span> These figures are illustrations, not your
-          SkipTheDishes payouts. Clearing the sample restores whatever this browser had before the preview.
+          delivery payouts. Clearing the sample restores whatever this browser had before the preview.
         </p>
         <Button type="button" variant="outline" className="h-9 shrink-0" onClick={requestClearSample}>
           Clear sample data

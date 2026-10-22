@@ -28,7 +28,7 @@ export function FuelView() {
       <PageHeader
         eyebrow="Fuel"
         title="What the week cost to drive"
-        description="A fill-up logged this week is used as the fuel cost. If the week has none, SkipPilot can estimate from kilometres once you save a vehicle figure."
+        description="A fill-up logged this week is used as the fuel cost. If the week has none, GoVio can estimate from kilometres once you save a vehicle figure."
         actions={
           <Button type="button" className="h-10 px-3.5" onClick={() => openFuel()}>
             Log fill-up

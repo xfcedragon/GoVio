@@ -683,7 +683,7 @@ function ExpenseForm({
       <DialogHeader className="pr-8">
         <DialogTitle>{expense ? "Edit receipt" : "Add a receipt or expense"}</DialogTitle>
         <DialogDescription>
-          Automatic receipt reading is not available. SkipPilot does not scan photos and did not fill these fields. Type the merchant, date, and amounts yourself. Saving stores what you typed.
+          Automatic receipt reading is not available. GoVio does not scan photos and did not fill these fields. Type the merchant, date, and amounts yourself. Saving stores what you typed.
         </DialogDescription>
       </DialogHeader>
       <p className="rounded-lg border border-border bg-background px-3 py-2 text-xs leading-5 text-muted-foreground">

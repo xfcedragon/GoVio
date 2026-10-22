@@ -27,6 +27,7 @@ import {
   type YearCoverage,
 } from "@/lib/types"
 
+/** Kept as skippilot.ledger.v1 so ledgers saved before the GoVio rename still load. */
 export const STORAGE_KEY = "skippilot.ledger.v1"
 
 const PROVINCE_CODES = new Set<string>(PROVINCES.map((province) => province.code))

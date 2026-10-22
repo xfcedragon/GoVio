@@ -19,11 +19,11 @@ const plex = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "SkipPilot",
-    template: "%s · SkipPilot",
+    default: "GoVio",
+    template: "%s · GoVio",
   },
   description:
-    "A private earnings ledger for SkipTheDishes drivers in Canada. Shifts, fuel, bills, and vehicle records stay in this browser.",
+    "A private earnings ledger for gig delivery drivers in Canada. Shifts, fuel, bills, and vehicle records stay in this browser.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

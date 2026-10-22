@@ -272,7 +272,7 @@ function ShiftForm({
           <p className="text-xs leading-5 text-muted-foreground">
             A shift still saves with only the payout, times, and kilometres. Kilometres stay unclassified for tax until you mark them business, personal, or mixed. Unclassified kilometres are not deducted.
           </p>
-          <Field label="Delivery platform" htmlFor="shift-platform" hint="Defaults to your setting, usually SkipTheDishes.">
+          <Field label="Delivery platform" htmlFor="shift-platform" hint="The app this shift was on. Starts from your default.">
             <Input className="h-10" value={platform} maxLength={40} onChange={(event) => setPlatform(event.target.value)} />
           </Field>
           {data.vehicles.length > 1 ? (
@@ -428,7 +428,7 @@ function FuelForm({
       <DialogHeader className="pr-8">
         <DialogTitle>{existing ? "Edit fill-up" : "Log a fill-up"}</DialogTitle>
         <DialogDescription>
-          Use the litres and price per litre from the pump receipt. SkipPilot stores the total.
+          Use the litres and price per litre from the pump receipt. GoVio stores the total.
         </DialogDescription>
       </DialogHeader>
       <SampleNotice demo={demo} />
@@ -532,7 +532,7 @@ function BillForm({
       <DialogHeader className="pr-8">
         <DialogTitle>{existing ? "Edit bill" : "Add a bill"}</DialogTitle>
         <DialogDescription>
-          Bills you add here are reminders. SkipPilot does not pay them or connect to a bank.
+          Bills you add here are reminders. GoVio does not pay them or connect to a bank.
         </DialogDescription>
       </DialogHeader>
       <SampleNotice demo={demo} />
