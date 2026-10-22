@@ -76,7 +76,9 @@ function Wordmark({ compact = false }: { compact?: boolean }) {
       <span className="block text-sm font-medium tracking-tight text-foreground">GoVio</span>
       {compact ? null : (
         <span className="mt-1 block text-xs leading-4 text-muted-foreground">
-          Know what you make. Know what it costs.
+          Know what you make.
+          <br />
+          Know what it costs.
         </span>
       )}
     </Link>
@@ -114,7 +116,7 @@ function NavLinks({ compact = false }: { compact?: boolean }) {
   const pathname = usePathname()
   const hash = useHash()
   return (
-    <nav aria-label="Primary" className={compact ? "flex gap-4 overflow-x-auto" : "grid"}>
+    <nav aria-label="Primary" className={compact ? "flex items-center gap-3 overflow-x-auto" : "grid"}>
       {NAV.map((entry) => {
         if (entry.type === "link") {
           return (
@@ -129,11 +131,11 @@ function NavLinks({ compact = false }: { compact?: boolean }) {
           )
         }
         return (
-          <div key={entry.label} className={compact ? "shrink-0" : "pt-4 first:pt-0"}>
+          <div key={entry.label} className={compact ? "flex shrink-0 items-center gap-1" : "pt-4 first:pt-0"}>
             <p
               className={cn(
-                "px-2.5 pb-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase",
-                compact && "px-2.5",
+                "text-[10px] font-medium tracking-wide text-muted-foreground uppercase",
+                compact ? "pr-0.5" : "px-2.5 pb-1",
               )}
             >
               {entry.label}
@@ -222,10 +224,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="px-4 pt-4 pb-3">
           <Wordmark />
         </div>
-        <div className="px-2">
+        <div className="min-h-0 flex-1 overflow-y-auto px-2">
           <NavLinks />
         </div>
-        <div className="mt-auto border-t border-sidebar-border px-4 py-3">
+        <div className="border-t border-sidebar-border px-4 py-3">
           <p className="text-xs leading-5 text-muted-foreground">
             On this device. The ledger stays in this browser until you confirm a migration.
           </p>
