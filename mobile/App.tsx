@@ -15,6 +15,8 @@ import {
 import type { User } from "@supabase/supabase-js"
 import {
   authErrorMessage,
+  authLinkErrorCode,
+  loginBanner,
   validateForgotPassword,
   validatePasswordReset,
   validateSignIn,
@@ -90,6 +92,20 @@ export default function App() {
       const code = typeof parsed.queryParams?.code === "string" ? parsed.queryParams.code : null
       const tokenHash = typeof parsed.queryParams?.token_hash === "string" ? parsed.queryParams.token_hash : null
       const type = typeof parsed.queryParams?.type === "string" ? parsed.queryParams.type : null
+      const queryValue = (key: string): string | null => {
+        const value = parsed.queryParams?.[key]
+        return typeof value === "string" ? value : null
+      }
+      const linkError = authLinkErrorCode({
+        error: queryValue("error"),
+        errorCode: queryValue("error_code"),
+        description: queryValue("error_description"),
+      })
+      if (linkError) {
+        setBanner(loginBanner(linkError) ?? "The confirmation link could not be verified. Request a new one.")
+        setScreen("login")
+        return
+      }
       if (code) {
         const { error } = await supabase!.auth.exchangeCodeForSession(code)
         if (error) {

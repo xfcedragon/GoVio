@@ -9,17 +9,17 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
   forgotPasswordAction,
-  initialAuthState,
   resetPasswordAction,
   signInAction,
   signUpAction,
-  type AuthActionState,
 } from "@/lib/auth-actions"
 import {
+  initialAuthState,
   validateForgotPassword,
   validatePasswordReset,
   validateSignIn,
   validateSignUp,
+  type AuthActionState,
   type FieldErrors,
 } from "@/lib/auth"
 import { useActionState } from "react"
@@ -140,8 +140,8 @@ function TextField({
   )
 }
 
-function FormMessage({ state, clientInvalid }: { state: AuthActionState; clientInvalid: boolean }) {
-  if (clientInvalid || !state.message) return null
+function FormMessage({ state, clientInvalid }: { state: AuthActionState | null | undefined; clientInvalid: boolean }) {
+  if (clientInvalid || !state?.message) return null
   if (state.status === "check-email") {
     return (
       <p role="status" className="text-sm leading-5 text-foreground">
@@ -185,7 +185,7 @@ function SignInForm({ nextPath, error, notice }: { nextPath: string; error: stri
   const [password, setPassword] = useState("")
   const [clientErrors, setClientErrors] = useState<FieldErrors>({})
   const clientInvalid = Object.keys(clientErrors).length > 0
-  const errors = clientInvalid ? clientErrors : state.fieldErrors
+  const errors = clientInvalid ? clientErrors : (state?.fieldErrors ?? {})
 
   return (
     <div className="space-y-4">
@@ -236,7 +236,7 @@ function SignUpForm({ nextPath }: { nextPath: string }) {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [clientErrors, setClientErrors] = useState<FieldErrors>({})
   const clientInvalid = Object.keys(clientErrors).length > 0
-  const errors = clientInvalid ? clientErrors : state.fieldErrors
+  const errors = clientInvalid ? clientErrors : (state?.fieldErrors ?? {})
 
   return (
     <div className="space-y-4">
@@ -289,7 +289,7 @@ function ForgotForm() {
   const [email, setEmail] = useState("")
   const [clientErrors, setClientErrors] = useState<FieldErrors>({})
   const clientInvalid = Object.keys(clientErrors).length > 0
-  const errors = clientInvalid ? clientErrors : state.fieldErrors
+  const errors = clientInvalid ? clientErrors : (state?.fieldErrors ?? {})
 
   return (
     <div className="space-y-4">
@@ -339,7 +339,7 @@ function ResetForm({ email, blocked }: { email: string | null; blocked: string |
   const [confirmPassword, setConfirmPassword] = useState("")
   const [clientErrors, setClientErrors] = useState<FieldErrors>({})
   const clientInvalid = Object.keys(clientErrors).length > 0
-  const errors = clientInvalid ? clientErrors : state.fieldErrors
+  const errors = clientInvalid ? clientErrors : (state?.fieldErrors ?? {})
 
   if (blocked) {
     return (

@@ -32,6 +32,34 @@ export type SessionFailure = "network" | "expired" | "config"
 
 const EMAIL = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i
 
+export type AuthActionState = {
+  status: "idle" | "error" | "check-email"
+  message: string
+  fieldErrors: FieldErrors
+}
+
+export const initialAuthState: AuthActionState = {
+  status: "idle",
+  message: "",
+  fieldErrors: {},
+}
+
+export type ProfileActionState = {
+  status: "idle" | "error" | "saved"
+  message: string
+}
+
+export const initialProfileState: ProfileActionState = {
+  status: "idle",
+  message: "",
+}
+
+/** Example values from `.env.example` are not a project. They must not turn sign-in on. */
+export function isPlaceholderSecret(value: string): boolean {
+  const upper = value.toUpperCase()
+  return upper.includes("YOUR_PROJECT_REF") || upper.includes("YOUR_SUPABASE") || upper.includes("YOUR_ANON")
+}
+
 const LOGIN_ERRORS: Record<string, string> = {
   unconfigured: "Account sign-in is not configured.",
   credentials: "Email or password is incorrect.",
@@ -50,9 +78,13 @@ export function readEnv(env: EnvLike, name: string): string {
   return typeof value === "string" ? value.trim() : ""
 }
 
-/** True only when both public web values are non-empty. The service-role key is not part of this check. */
+/** True only when both public web values are real. Placeholders and the service-role key do not count. */
 export function isSupabaseConfigured(env: EnvLike): boolean {
-  return readEnv(env, PUBLIC_SUPABASE_URL).length > 0 && readEnv(env, PUBLIC_SUPABASE_ANON_KEY).length > 0
+  const url = readEnv(env, PUBLIC_SUPABASE_URL)
+  const anonKey = readEnv(env, PUBLIC_SUPABASE_ANON_KEY)
+  if (!url || !anonKey) return false
+  if (isPlaceholderSecret(url) || isPlaceholderSecret(anonKey)) return false
+  return true
 }
 
 export function publicSupabaseConfig(env: EnvLike): { url: string; anonKey: string } | null {
@@ -64,7 +96,11 @@ export function publicSupabaseConfig(env: EnvLike): { url: string; anonKey: stri
 }
 
 export function isExpoSupabaseConfigured(env: EnvLike): boolean {
-  return readEnv(env, EXPO_SUPABASE_URL).length > 0 && readEnv(env, EXPO_SUPABASE_ANON_KEY).length > 0
+  const url = readEnv(env, EXPO_SUPABASE_URL)
+  const anonKey = readEnv(env, EXPO_SUPABASE_ANON_KEY)
+  if (!url || !anonKey) return false
+  if (isPlaceholderSecret(url) || isPlaceholderSecret(anonKey)) return false
+  return true
 }
 
 export function publicExpoConfig(env: EnvLike): { url: string; anonKey: string } | null {
@@ -188,6 +224,41 @@ export function loginBanner(code: string): string | null {
   return Object.prototype.hasOwnProperty.call(LOGIN_ERRORS, code)
     ? LOGIN_ERRORS[code] ?? "Sign-in did not succeed."
     : "Sign-in did not succeed."
+}
+
+/**
+ * Supabase appends `error`, `error_code`, and `error_description` when a mail link fails.
+ * `otp_expired` is the expired-link case. Any other error is a failed verification, not a session.
+ */
+export function authLinkErrorCode(input: {
+  error?: string | null
+  errorCode?: string | null
+  description?: string | null
+}): "expired" | "callback" | null {
+  const error = (input.error ?? "").trim().toLowerCase()
+  const code = (input.errorCode ?? "").trim().toLowerCase()
+  const description = (input.description ?? "").trim().toLowerCase()
+  if (!error && !code && !description) return null
+  if (code === "otp_expired" || code.includes("expired") || description.includes("expired") || error.includes("expired")) {
+    return "expired"
+  }
+  return "callback"
+}
+
+export function isExpiredAuthFailure(error: AuthFailure | null | undefined): boolean {
+  if (!error) return false
+  const message = (error.message ?? "").toLowerCase()
+  const code = (error.code ?? "").toLowerCase()
+  return code === "otp_expired" || code.includes("expired") || message.includes("expired")
+}
+
+/**
+ * Pure form of `auth.uid() = user_id` (and `auth.uid() = id` on profiles).
+ * A session for one user cannot satisfy this for a different owner id.
+ */
+export function sessionOwnsRow(sessionUserId: string | null | undefined, rowOwnerId: string | null | undefined): boolean {
+  if (!sessionUserId || !rowOwnerId) return false
+  return sessionUserId === rowOwnerId
 }
 
 export function loginNotice(code: string): string | null {

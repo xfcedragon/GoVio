@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
+import { readdirSync, readFileSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { test } from "node:test"
 
@@ -35,6 +35,34 @@ test("the receipts bucket is private and anon is not granted table access", () =
   assert.match(sql, /'receipts',\s*'receipts',\s*false/)
   assert.doesNotMatch(sql, /grant\s+(select|insert|update|delete|all)[^;]*\bto\s+anon\b/i)
   assert.match(sql, /revoke all on table public\.profiles from anon, public/i)
+})
+
+function sourceFiles(dir: string): string[] {
+  const found: string[] = []
+  for (const entry of readdirSync(dir)) {
+    const path = join(dir, entry)
+    if (statSync(path).isDirectory()) {
+      if (entry === "node_modules" || entry === ".next") continue
+      found.push(...sourceFiles(path))
+      continue
+    }
+    if (path.endsWith(".ts") || path.endsWith(".tsx")) found.push(path)
+  }
+  return found
+}
+
+test("client components do not import the service-role client or its env name", () => {
+  const roots = [join(process.cwd(), "src"), join(process.cwd(), "mobile")].filter((dir) => statSync(dir).isDirectory())
+  for (const file of roots.flatMap(sourceFiles)) {
+    const text = readFileSync(file, "utf8")
+    if (!text.includes('"use client"') && !file.includes(`${join("mobile", "App.tsx")}`) && !file.includes("/mobile/")) {
+      continue
+    }
+    if (file.endsWith(".test.ts")) continue
+    assert.equal(text.includes("SUPABASE_SERVICE_ROLE_KEY"), false, file)
+    assert.equal(text.includes("supabase/admin"), false, file)
+    assert.equal(text.includes("createSupabaseAdminClient"), false, file)
+  }
 })
 
 test("signup trigger is security definer with a locked search path and does not seed ledger rows", () => {

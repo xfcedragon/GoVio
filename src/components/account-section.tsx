@@ -9,7 +9,8 @@ import { textLinkClass } from "@/components/field"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { initialProfileState, logoutAction, updateProfileNameAction } from "@/lib/auth-actions"
+import { logoutAction, updateProfileNameAction } from "@/lib/auth-actions"
+import { initialProfileState } from "@/lib/auth"
 import type { AccountSnapshot } from "@/lib/account-snapshot"
 
 function SaveNameButton() {
@@ -107,7 +108,7 @@ function SignedInAccount({
               Saved on the profile row. The display name below stays on this device and is not uploaded.
             </p>
           </div>
-          {profileState.message ? (
+          {profileState?.message ? (
             <p role={profileState.status === "error" ? "alert" : "status"} className={profileState.status === "error" ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>
               {profileState.message}
             </p>

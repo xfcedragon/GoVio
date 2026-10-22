@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { destinationAfterAuth, isSupabaseConfigured } from "@/lib/auth"
+import { authLinkErrorCode, destinationAfterAuth, isExpiredAuthFailure, isSupabaseConfigured } from "@/lib/auth"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const OTP_TYPES = new Set(["signup", "invite", "magiclink", "recovery", "email_change", "email"])
@@ -20,12 +20,18 @@ export async function GET(request: NextRequest) {
   const requested = url.searchParams.get("next")
   const fallback = type === "recovery" ? "/reset-password" : "/"
   const next = destinationAfterAuth(requested && requested.length > 0 ? requested : fallback)
+  const linkError = authLinkErrorCode({
+    error: url.searchParams.get("error"),
+    errorCode: url.searchParams.get("error_code"),
+    description: url.searchParams.get("error_description"),
+  })
+  if (linkError) return loginError(url.origin, linkError)
 
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) return NextResponse.redirect(new URL(next, url.origin))
+    if (isExpiredAuthFailure(error)) return loginError(url.origin, "expired")
     const message = (error.message ?? "").toLowerCase()
-    if (message.includes("expired")) return loginError(url.origin, "expired")
     if (message.includes("fetch") || message.includes("network")) return loginError(url.origin, "network")
     return loginError(url.origin, "callback")
   }
@@ -39,13 +45,9 @@ export async function GET(request: NextRequest) {
       const destination = type === "recovery" ? destinationAfterAuth(requested || "/reset-password") : next
       return NextResponse.redirect(new URL(destination, url.origin))
     }
+    if (isExpiredAuthFailure(error)) return loginError(url.origin, "expired")
     const message = (error.message ?? "").toLowerCase()
-    if (message.includes("expired")) return loginError(url.origin, "expired")
     if (message.includes("fetch") || message.includes("network")) return loginError(url.origin, "network")
-    return loginError(url.origin, "callback")
-  }
-
-  if (url.searchParams.get("error") || url.searchParams.get("error_description")) {
     return loginError(url.origin, "callback")
   }
 

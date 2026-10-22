@@ -30,7 +30,7 @@ Entries stay in `localStorage` under `skippilot.ledger.v1`. That key is unchange
 
 Accounts use Supabase Auth. GoVio does not store its own passwords. The publishable anon key may be public. The service-role key is server-only and is required only to delete an auth user. It must never be placed in a `NEXT_PUBLIC_` variable, an `EXPO_PUBLIC_` variable, a client bundle, or the mobile app.
 
-When `NEXT_PUBLIC_SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_ANON_KEY` is missing, dashboard routes keep working on local data and are not redirected to login. Auth pages say that account sign-in is not configured. They do not pretend a session exists.
+When `NEXT_PUBLIC_SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_ANON_KEY` is missing, dashboard routes keep working on local data and are not redirected to login. The placeholders in `.env.example` (`https://YOUR_PROJECT_REF.supabase.co` and `YOUR_SUPABASE_ANON_KEY`) are not a configuration. Auth pages say that account sign-in is not configured. They do not pretend a session exists.
 
 When both public values are set, `src/proxy.ts` (Next.js 16 Proxy, the replacement for Middleware) checks the session cookie on the server. Unsigned visitors to `/`, `/shifts`, `/fuel`, `/hourly`, `/bills`, `/vehicle`, and `/settings` go to `/login` with a same-origin `next` path. Signed-in visitors to `/login` and `/signup` go to that path or the overview. The service-role key is not required for this gate.
 

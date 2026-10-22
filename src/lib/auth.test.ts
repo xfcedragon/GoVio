@@ -3,11 +3,14 @@ import { test } from "node:test"
 import { isAccountDeletionConfigured, SERVICE_ROLE_ENV } from "@/lib/account-deletion"
 import {
   authErrorMessage,
+  authLinkErrorCode,
   destinationAfterAuth,
+  initialAuthState,
   isExpoSupabaseConfigured,
   isSupabaseConfigured,
   safeNextPath,
   sessionFailure,
+  sessionOwnsRow,
   validateSignUp,
 } from "@/lib/auth"
 
@@ -103,6 +106,63 @@ test("post-auth destinations drop auth pages and unsafe next values", () => {
   assert.equal(destinationAfterAuth("/signup?next=/settings"), "/")
   assert.equal(destinationAfterAuth("//evil.example"), "/")
   assert.equal(destinationAfterAuth(undefined), "/")
+})
+
+test("a session cannot satisfy ownership for someone else's id", () => {
+  const alice = "11111111-1111-1111-1111-111111111111"
+  const bob = "22222222-2222-2222-2222-222222222222"
+  assert.equal(sessionOwnsRow(alice, alice), true)
+  assert.equal(sessionOwnsRow(alice, bob), false)
+  assert.equal(sessionOwnsRow(bob, alice), false)
+  assert.equal(sessionOwnsRow(null, alice), false)
+  assert.equal(sessionOwnsRow("", bob), false)
+  assert.equal(sessionOwnsRow(alice, null), false)
+})
+
+test("example placeholders do not configure sign-in or account deletion", () => {
+  assert.equal(
+    isSupabaseConfigured({
+      NEXT_PUBLIC_SUPABASE_URL: "https://YOUR_PROJECT_REF.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "YOUR_SUPABASE_ANON_KEY",
+    }),
+    false,
+  )
+  assert.equal(
+    isSupabaseConfigured({
+      NEXT_PUBLIC_SUPABASE_URL: "https://YOUR_PROJECT_REF.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "YOUR_SUPABASE_PUBLISHABLE_KEY",
+    }),
+    false,
+  )
+  assert.equal(
+    isExpoSupabaseConfigured({
+      EXPO_PUBLIC_SUPABASE_URL: "https://YOUR_PROJECT_REF.supabase.co",
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: "YOUR_SUPABASE_ANON_KEY",
+    }),
+    false,
+  )
+  assert.equal(
+    isAccountDeletionConfigured({
+      ...configured,
+      SUPABASE_SERVICE_ROLE_KEY: "YOUR_SUPABASE_SERVICE_ROLE_KEY",
+    }),
+    false,
+  )
+  assert.equal(initialAuthState.fieldErrors.email, undefined)
+  assert.equal(initialAuthState.status, "idle")
+})
+
+test("expired mail links are distinct from a generic callback failure", () => {
+  assert.equal(
+    authLinkErrorCode({
+      error: "access_denied",
+      errorCode: "otp_expired",
+      description: "Email link is invalid or has expired",
+    }),
+    "expired",
+  )
+  assert.equal(authLinkErrorCode({ error: "server_error", errorCode: null, description: null }), "callback")
+  assert.equal(authLinkErrorCode({ error: null, errorCode: null, description: null }), null)
 })
 
 test("supabase configured detection requires both public web values and ignores the service role", () => {

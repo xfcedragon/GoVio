@@ -11,31 +11,11 @@ import {
   validatePasswordReset,
   validateSignIn,
   validateSignUp,
+  type AuthActionState,
   type FieldErrors,
+  type ProfileActionState,
 } from "@/lib/auth"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-
-export type AuthActionState = {
-  status: "idle" | "error" | "check-email"
-  message: string
-  fieldErrors: FieldErrors
-}
-
-export const initialAuthState: AuthActionState = {
-  status: "idle",
-  message: "",
-  fieldErrors: {},
-}
-
-export type ProfileActionState = {
-  status: "idle" | "error" | "saved"
-  message: string
-}
-
-export const initialProfileState: ProfileActionState = {
-  status: "idle",
-  message: "",
-}
 
 function invalid(fieldErrors: FieldErrors): AuthActionState {
   return { status: "error", message: "Fix the highlighted fields.", fieldErrors }

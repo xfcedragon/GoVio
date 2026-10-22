@@ -208,6 +208,12 @@ alter table public.mileage_entries force row level security;
 alter table public.expenses enable row level security;
 alter table public.expenses force row level security;
 
+-- Policy intent: auth.uid() = user_id is true only for the row owner.
+-- A session whose auth.uid() is 11111111-1111-1111-1111-111111111111 does not satisfy
+-- auth.uid() = user_id when the row's user_id is 22222222-2222-2222-2222-222222222222.
+-- profiles uses the same rule as auth.uid() = id. Storage objects use the same owner as the first path folder.
+-- This file was not executed against a live database.
+
 create policy profiles_select_own on public.profiles
   for select to authenticated
   using (auth.uid() = id);
