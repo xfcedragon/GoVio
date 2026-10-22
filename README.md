@@ -6,7 +6,7 @@ A private earnings ledger for gig delivery drivers in Canada. Log shifts, fuel f
 
 Without Supabase environment variables, GoVio stays a local ledger in this browser. There is no invented payout data. A labeled sample week can be loaded from the empty shifts panel or from Settings, and cleared again. With a Supabase project configured, the same app also has email and password accounts. Local entries are not uploaded unless a later, confirmed migration is built.
 
-Live authentication was **not** verified against a real Supabase project in this environment. There are no project credentials here.
+The project URL and publishable key belong only in gitignored env files. They are not in this repository. Signup, email verification, password reset, and row level security were not verified against the live project. A reachability check is not that proof.
 
 ## Run the web app
 
@@ -36,17 +36,22 @@ When both public values are set, `src/proxy.ts` (Next.js 16 Proxy, the replaceme
 
 Copy `.env.example` to `.env.local` and fill in the real project values. Do not commit `.env.local`. Set the public variables before `npm run build` if you rely on Next inlining them for any client code. The server gate reads the public names at request time.
 
-### Create the Supabase project
+### Dashboard steps still required
 
-1. Create a project at [supabase.com](https://supabase.com).
-2. In Project Settings → API, copy the project URL and the publishable (anon) key into the web env vars above. Copy the service-role key only into `SUPABASE_SERVICE_ROLE_KEY` on the server.
-3. Apply `supabase/migrations/20261022160000_auth_foundation.sql` with the Supabase CLI (`supabase db push`) or by pasting it into the SQL editor. This creates `profiles` and empty user-owned tables for shifts, vehicles, mileage entries (including a private place for a later GPS trace), fuel purchases, expenses, and receipt metadata. It does not import any local ledger.
-4. In Authentication → Providers → Email, enable email and password and turn on email confirmation.
-5. In Authentication → URL configuration, add these redirect URLs:
+The web env file is `.env.local` in the repo root. The Expo env file is `mobile/.env.local`. Neither file is committed. Do not paste keys into chat.
+
+These dashboard settings are still yours to turn on:
+
+1. Authentication → Providers → Email: turn the email provider on, and turn confirm email on.
+2. Authentication → URL configuration: set the Site URL to `http://127.0.0.1:43127`.
+3. Add both of these to the redirect allow list:
    - `http://127.0.0.1:43127/auth/callback`
-   - `govio://auth/callback`
-   - The Expo Go URL printed on the mobile register screen, if you confirm email inside Expo Go (`exp://…/--/auth/callback`)
-6. Set the Site URL to `http://127.0.0.1:43127` while developing the web app.
+   - `http://localhost:43127/auth/callback`
+4. For the Expo app, also allow `govio://auth/callback` and the Expo Go URL printed on the register screen (`exp://…/--/auth/callback`) if confirmation should open on the phone.
+
+Account deletion stays unavailable until `SUPABASE_SERVICE_ROLE_KEY` is set in `/workspace/.env.local`. That key is server-only. Do not put it in the mobile app, in `EXPO_PUBLIC_` or `NEXT_PUBLIC_` variables, or in chat.
+
+`supabase/migrations/20261022160000_auth_foundation.sql` is prepared and has **not** been applied. It creates `profiles` (with a trigger on `auth.users` insert) and empty user-owned tables for shifts, vehicles, mileage and GPS sessions, fuel purchases, expenses, and receipt metadata, plus a private `receipts` storage bucket. It does not import the local ledger. Approve that file before anyone runs `supabase db push` or pastes it into the SQL editor.
 
 Signup stores the full name in `raw_user_meta_data.full_name`. A security-definer trigger inserts that person's `profiles` row. Row level security lets `authenticated` read and write only rows where `auth.uid()` matches `user_id` (or `id` on `profiles`). The `receipts` storage bucket is private. A user can read and write objects only under their own `<uid>/` prefix. Receipt files and GPS traces must stay in that private prefix. Do not mark the bucket public.
 

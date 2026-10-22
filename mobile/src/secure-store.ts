@@ -8,6 +8,14 @@ function countKey(key: string) {
 
 const options = { keychainAccessible: SecureStore.WHEN_UNLOCKED }
 
+async function removeKey(key: string) {
+  try {
+    await SecureStore.deleteItemAsync(key, options)
+  } catch {
+    // A missing key is already gone. Some platforms reject that delete.
+  }
+}
+
 /**
  * Supabase sessions can exceed the historical ~2048 byte keychain limit.
  * Values are split across Secure Store keys. Tokens are not written to AsyncStorage.
@@ -40,11 +48,11 @@ export const secureStoreAdapter = {
       const count = Number(countRaw)
       if (Number.isInteger(count) && count > 0) {
         for (let index = 0; index < count; index += 1) {
-          await SecureStore.deleteItemAsync(`${key}.${index}`, options)
+          await removeKey(`${key}.${index}`)
         }
       }
-      await SecureStore.deleteItemAsync(countKey(key), options)
+      await removeKey(countKey(key))
     }
-    await SecureStore.deleteItemAsync(key, options)
+    await removeKey(key)
   },
 }
