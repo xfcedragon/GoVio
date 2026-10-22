@@ -8,7 +8,7 @@ import { controlClass, Field, textLinkClass } from "@/components/field"
 import { Numeric } from "@/components/numeric"
 import { PageHeader } from "@/components/page-header"
 import { SegmentedControl } from "@/components/segmented-control"
-import { FigureRow } from "@/components/stat-card"
+import { FigureRow, LeadFigure } from "@/components/stat-card"
 import { Button } from "@/components/ui/button"
 import { formatMonthDay, formatTime, formatWeekdayDate } from "@/lib/dates"
 import { countLabel, formatCad, formatHours, formatKm } from "@/lib/format"
@@ -244,13 +244,13 @@ function HourlyTable({ lines, ratesReady }: { lines: HourlyShiftLine[]; ratesRea
       <table className="w-full min-w-[860px] text-left text-sm">
         <caption className="sr-only">Hourly earnings for shifts in this period</caption>
         <thead>
-          <tr className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-            <th className="px-5 py-3 font-medium">Date</th>
-            <th className="px-3 py-3 font-medium">Hours</th>
-            <th className="px-3 py-3 font-medium">Gross</th>
-            <th className="px-3 py-3 font-medium">Gross/h</th>
-            <th className="px-3 py-3 font-medium">Est. net/h</th>
-            <th className="px-5 py-3 text-right font-medium">
+          <tr className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+            <th className="px-3 py-2 text-left font-medium">Date</th>
+            <th className="px-3 py-2 text-right font-medium">Hours</th>
+            <th className="px-3 py-2 text-right font-medium">Gross</th>
+            <th className="px-3 py-2 text-right font-medium">Gross/h</th>
+            <th className="px-3 py-2 text-right font-medium">Est. net/h</th>
+            <th className="px-3 py-2 text-right font-medium">
               <span className="sr-only">Actions</span>
             </th>
           </tr>
@@ -258,24 +258,24 @@ function HourlyTable({ lines, ratesReady }: { lines: HourlyShiftLine[]; ratesRea
         <tbody>
           {lines.map((line) => (
             <tr key={line.id} className="border-t border-border transition-colors hover:bg-white/[0.03]">
-              <td className="px-5 py-3 align-top">
+              <td className="px-3 py-2 align-top">
                 <div className="font-medium text-foreground">{formatWeekdayDate(line.date)}</div>
                 <div className="mt-0.5 text-xs text-muted-foreground">
                   {formatTime(line.start)} – {formatTime(line.end)}
                   {line.area ? ` · ${line.area}` : ""}
                 </div>
               </td>
-              <td className="px-3 py-3 align-top whitespace-nowrap">
+              <td className="px-3 py-2 text-right align-top whitespace-nowrap">
                 <Numeric>{formatHours(line.hours)}</Numeric>
                 <div className="mt-0.5 text-xs text-muted-foreground">{formatKm(line.kilometres)}</div>
               </td>
-              <td className="px-3 py-3 align-top whitespace-nowrap">
+              <td className="px-3 py-2 text-right align-top whitespace-nowrap">
                 <Numeric tone={line.earnings > 0 ? "positive" : "default"}>{formatCad(line.earnings)}</Numeric>
               </td>
-              <td className="px-3 py-3 align-top whitespace-nowrap">
+              <td className="px-3 py-2 text-right align-top whitespace-nowrap">
                 <Numeric tone={line.grossHourly > 0 ? "positive" : "default"}>{perHour(line.grossHourly)}</Numeric>
               </td>
-              <td className="px-3 py-3 align-top whitespace-nowrap" title={netCellTitle(line, ratesReady)}>
+              <td className="px-3 py-2 text-right align-top whitespace-nowrap" title={netCellTitle(line, ratesReady)}>
                 <Numeric
                   tone={
                     line.estimatedNetHourly === null
@@ -410,28 +410,20 @@ export function HourlyView() {
         ) : null}
       </div>
 
-      <section aria-label="Hourly summary" className="rounded-md border border-border bg-card px-3 py-3">
+      <section aria-label="Hourly summary" className="overflow-hidden rounded-md border border-border bg-card">
+        <div className="grid lg:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)]">
+          <div className="border-b border-border px-3 py-3 lg:border-r lg:border-b-0">
+            <LeadFigure
+              label="Gross / hour"
+              value={hasHours ? perHour(report?.grossHourly ?? null) : "—"}
+              tone={report?.grossHourly != null && report.grossHourly > 0 ? "positive" : "muted"}
+              hint={grossHint(result)}
+            />
+          </div>
+          <div className="px-3 py-3">
         <FigureRow
-          columns="grid-cols-2 lg:grid-cols-4"
+          columns="grid-cols-2 lg:grid-cols-3"
           items={[
-            {
-              label: "Gross / hour",
-              value: hasHours ? perHour(report?.grossHourly ?? null) : "—",
-              tone: report?.grossHourly != null && report.grossHourly > 0 ? "positive" : "muted",
-              hint: grossHint(result),
-            },
-            {
-              label: "Net / hour",
-              value: hasHours ? perHour(report?.estimatedNetHourly ?? null) : "—",
-              tone: hasHours ? netTone : "muted",
-              hint: netHint(result),
-            },
-            {
-              label: "Total hours",
-              value: hasHours && report ? formatHours(report.totalHours) : "—",
-              tone: hasHours ? "default" : "muted",
-              hint: hasHours && report ? countLabel(report.shiftCount, "shift") : "Shifts with a real start and end",
-            },
             {
               label: "Total gross",
               value: hasHours && report ? formatCad(report.totalEarnings) : "—",
@@ -440,6 +432,18 @@ export function HourlyView() {
                 report?.averagePerShift == null
                   ? "Payout before fuel"
                   : `Average per shift ${formatCad(report.averagePerShift)}`,
+            },
+            {
+              label: "Total hours",
+              value: hasHours && report ? formatHours(report.totalHours) : "—",
+              tone: hasHours ? "default" : "muted",
+              hint: hasHours && report ? countLabel(report.shiftCount, "shift") : "Shifts with a real start and end",
+            },
+            {
+              label: "Net / hour",
+              value: hasHours ? perHour(report?.estimatedNetHourly ?? null) : "—",
+              tone: hasHours ? netTone : "muted",
+              hint: netHint(result),
             },
           ]}
         />
@@ -474,6 +478,8 @@ export function HourlyView() {
               },
             ]}
           />
+        </div>
+          </div>
         </div>
       </section>
 

@@ -686,7 +686,7 @@ function ExpenseForm({
           Automatic receipt reading is not available. GoVio does not scan photos and did not fill these fields. Type the merchant, date, and amounts yourself. Saving stores what you typed.
         </DialogDescription>
       </DialogHeader>
-      <p className="rounded-lg border border-border bg-background px-3 py-2 text-xs leading-5 text-muted-foreground">
+      <p className="rounded-md border border-border bg-background px-3 py-2 text-xs leading-5 text-muted-foreground">
         The photo, if you add one, stays in this browser&apos;s IndexedDB and is linked by receipt id. It is not uploaded and does not sync to another device. Clearing site data deletes it with the ledger. If saving the photo fails, it is not marked as saved.
       </p>
       <Field label="Receipt photo" htmlFor="expense-file" hint="Optional. You can save the amounts with no image.">

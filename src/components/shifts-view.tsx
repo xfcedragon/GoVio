@@ -5,10 +5,10 @@ import { EmptyState } from "@/components/empty-state"
 import { PageHeader } from "@/components/page-header"
 import { SegmentedControl } from "@/components/segmented-control"
 import { ShiftsTable } from "@/components/shifts-table"
-import { FigureRow } from "@/components/stat-card"
+import { FigureRow, LeadFigure } from "@/components/stat-card"
 import { Button } from "@/components/ui/button"
 import { formatCad, formatHours, formatKm } from "@/lib/format"
-import { compareShiftsDesc, summarizeShifts } from "@/lib/metrics"
+import { compareShiftsDesc, distanceFuelEstimate, summarizeShifts } from "@/lib/metrics"
 import { useSkipPilot } from "@/lib/store"
 
 export function ShiftsView() {
@@ -26,6 +26,7 @@ export function ShiftsView() {
   const weekPending = scope === "week" && metrics === null
   const emptyWeek = scope === "week" && metrics !== null && filtered.length === 0 && data.shifts.length > 0
   const empty = summary.count === 0
+  const estimatedFuel = empty ? null : distanceFuelEstimate(summary.kilometres, data.settings)
 
   return (
     <div className="space-y-4">
@@ -54,30 +55,42 @@ export function ShiftsView() {
         </p>
       </div>
 
-      <section aria-label="Shift totals" className="rounded-md border border-border bg-card px-3 py-3">
-        <FigureRow
-          columns="grid-cols-3"
-          items={[
-            {
-              label: "Gross",
-              value: empty ? "—" : formatCad(summary.earnings),
-              tone: empty ? "muted" : summary.earnings > 0 ? "positive" : "default",
-              hint: scope === "week" ? "This week" : "All logged shifts",
-            },
-            {
-              label: "Hours",
-              value: empty ? "—" : formatHours(summary.hours),
-              tone: empty ? "muted" : "default",
-              hint: scope === "week" ? "This week" : "All logged shifts",
-            },
-            {
-              label: "Kilometres",
-              value: empty ? "—" : formatKm(summary.kilometres),
-              tone: empty ? "muted" : "default",
-              hint: scope === "week" ? "This week" : "All logged shifts",
-            },
-          ]}
-        />
+      <section aria-label="Shift totals" className="overflow-hidden rounded-md border border-border bg-card">
+        <div className="grid lg:grid-cols-[minmax(14rem,16rem)_minmax(0,1fr)]">
+          <div className="border-b border-border px-3 py-3 lg:border-r lg:border-b-0">
+            <LeadFigure
+              label="Gross"
+              value={empty ? "—" : formatCad(summary.earnings)}
+              tone={empty ? "muted" : summary.earnings > 0 ? "positive" : "default"}
+              hint={scope === "week" ? "This week" : "All logged shifts"}
+            />
+          </div>
+          <div className="px-3 py-3">
+            <FigureRow
+              columns="grid-cols-2 sm:grid-cols-3"
+              items={[
+                {
+                  label: "Hours",
+                  value: empty ? "—" : formatHours(summary.hours),
+                  tone: empty ? "muted" : "default",
+                  hint: scope === "week" ? "This week" : "All logged shifts",
+                },
+                {
+                  label: "Kilometres",
+                  value: empty ? "—" : formatKm(summary.kilometres),
+                  tone: empty ? "muted" : "default",
+                  hint: scope === "week" ? "This week" : "All logged shifts",
+                },
+                {
+                  label: "Est. fuel",
+                  value: empty ? "—" : estimatedFuel === null ? "Unavailable" : formatCad(estimatedFuel),
+                  tone: "muted",
+                  hint: "Estimate · kilometres × L/100 km × pump price. Not a fill-up.",
+                },
+              ]}
+            />
+          </div>
+        </div>
       </section>
 
       <section className="overflow-hidden rounded-md border border-border bg-card">

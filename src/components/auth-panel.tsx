@@ -200,7 +200,7 @@ function SignInForm({ nextPath, error, notice }: { nextPath: string; error: stri
       ) : (
         <form
           action={action}
-          className="space-y-4 rounded-md border border-border bg-card p-3"
+          className="space-y-4 rounded-md border border-border bg-card p-4"
           noValidate
           onSubmit={(event) => {
             const nextErrors = validateSignIn({ email, password })
@@ -247,14 +247,14 @@ function SignUpForm({ nextPath }: { nextPath: string }) {
         </p>
       </div>
       {state.status === "check-email" ? (
-        <div className="space-y-3 rounded-md border border-border bg-card p-3">
+        <div className="space-y-3 rounded-md border border-border bg-card p-4">
           <FormMessage state={state} clientInvalid={false} />
           <Link href={withNext("/login", nextPath)} className={textLinkClass}>Back to sign in</Link>
         </div>
       ) : (
         <form
           action={action}
-          className="space-y-4 rounded-md border border-border bg-card p-3"
+          className="space-y-4 rounded-md border border-border bg-card p-4"
           noValidate
           onSubmit={(event) => {
             const nextErrors = validateSignUp({ email, password, confirmPassword, fullName })
@@ -300,14 +300,14 @@ function ForgotForm() {
         </p>
       </div>
       {state.status === "check-email" ? (
-        <div className="space-y-3 rounded-md border border-border bg-card p-3">
+        <div className="space-y-3 rounded-md border border-border bg-card p-4">
           <FormMessage state={state} clientInvalid={false} />
           <Link href="/login" className={textLinkClass}>Back to sign in</Link>
         </div>
       ) : (
         <form
           action={action}
-          className="space-y-4 rounded-md border border-border bg-card p-3"
+          className="space-y-4 rounded-md border border-border bg-card p-4"
           noValidate
           onSubmit={(event) => {
             const nextErrors = validateForgotPassword(email)
@@ -361,7 +361,7 @@ function ResetForm({ email, blocked }: { email: string | null; blocked: string |
       </div>
       <form
         action={action}
-        className="space-y-4 rounded-md border border-border bg-card p-3"
+        className="space-y-4 rounded-md border border-border bg-card p-4"
         noValidate
         onSubmit={(event) => {
           const nextErrors = validatePasswordReset({ password, confirmPassword })

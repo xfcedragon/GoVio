@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/empty-state"
 import { textLinkClass } from "@/components/field"
 import { PageHeader } from "@/components/page-header"
 import { Numeric } from "@/components/numeric"
-import { FigureRow } from "@/components/stat-card"
+import { FigureRow, LeadFigure } from "@/components/stat-card"
 import { Button } from "@/components/ui/button"
 import { formatMonthDay, formatWeekdayDate } from "@/lib/dates"
 import { formatCad, formatKm, formatLitres } from "@/lib/format"
@@ -38,34 +38,40 @@ export function FuelView() {
         }
       />
 
-      <section aria-label="Fuel summary" className="rounded-md border border-border bg-card px-3 py-3">
-        <FigureRow
-          columns="grid-cols-1 sm:grid-cols-3"
-          items={[
-            {
-              label: "Fuel purchases",
-              value: loggedKnown ? formatCad(logged) : metrics ? "Unavailable" : "—",
-              tone: loggedKnown ? "default" : "muted",
-              hint: loggedKnown ? "Sum of receipts dated this week" : "No receipt dated this week",
-            },
-            {
-              label: "Est. fuel consumed",
-              value: estimate === null ? (metrics ? "Unavailable" : "—") : formatCad(estimate),
-              tone: "muted",
-              hint: metrics
-                ? estimate === null
-                  ? `${formatKm(metrics.week.kilometres)} this week · set L/100 km and a pump price`
-                  : `${formatKm(metrics.week.kilometres)} × ${data.settings.litresPer100km} L/100 km`
-                : "Set L/100 km and a pump price",
-            },
-            {
-              label: "Week fuel figure",
-              value: weekFigureKnown && metrics ? formatCad(metrics.week.fuelCost) : metrics ? "Unavailable" : "—",
-              tone: "muted",
-              hint: metrics ? fuelMethodLabel(metrics.week.fuelMethod) : "Log a fill-up, or set L/100 km and a pump price",
-            },
-          ]}
-        />
+      <section aria-label="Fuel summary" className="overflow-hidden rounded-md border border-border bg-card">
+        <div className="grid lg:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)]">
+          <div className="border-b border-border px-3 py-3 lg:border-r lg:border-b-0">
+            <LeadFigure
+              label="Fuel purchases"
+              value={loggedKnown ? formatCad(logged) : metrics ? "Unavailable" : "—"}
+              tone={loggedKnown ? "default" : "muted"}
+              hint={loggedKnown ? "Cash at the pump this week" : "No receipt dated this week"}
+            />
+          </div>
+          <div className="px-3 py-3">
+            <FigureRow
+              columns="grid-cols-1 sm:grid-cols-2"
+              items={[
+                {
+                  label: "Est. fuel consumed",
+                  value: estimate === null ? (metrics ? "Unavailable" : "—") : formatCad(estimate),
+                  tone: "muted",
+                  hint: metrics
+                    ? estimate === null
+                      ? `${formatKm(metrics.week.kilometres)} this week · set L/100 km and a pump price`
+                      : `${formatKm(metrics.week.kilometres)} × ${data.settings.litresPer100km} L/100 km`
+                    : "Set L/100 km and a pump price",
+                },
+                {
+                  label: "Week fuel figure",
+                  value: weekFigureKnown && metrics ? formatCad(metrics.week.fuelCost) : metrics ? "Unavailable" : "—",
+                  tone: "muted",
+                  hint: metrics ? fuelMethodLabel(metrics.week.fuelMethod) : "Log a fill-up, or set L/100 km and a pump price",
+                },
+              ]}
+            />
+          </div>
+        </div>
       </section>
 
       <section className="rounded-md border border-border bg-card px-3 py-3 text-sm leading-5 text-muted-foreground">

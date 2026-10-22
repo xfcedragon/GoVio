@@ -40,7 +40,7 @@ export function WeeklyTargetCard({ className }: { className?: string }) {
             aria-valuenow={Math.min(week.earnings, target)}
             aria-label="Weekly income target"
           >
-            <div className="h-full bg-foreground/80" style={{ width: `${percent}%` }} />
+            <div className="h-full bg-positive" style={{ width: `${percent}%` }} />
           </div>
           <p className="mt-1.5 text-xs leading-4 text-muted-foreground">
             {remaining > 0

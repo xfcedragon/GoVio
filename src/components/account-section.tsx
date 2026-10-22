@@ -85,7 +85,7 @@ function SignedInAccount({
   return (
     <section className="max-w-xl space-y-4 rounded-md border border-border bg-card p-3">
       <div>
-        <h2 className="text-base font-semibold">Account</h2>
+        <h2 className="text-sm font-medium">Account</h2>
         <p className="mt-1 text-sm leading-6 text-muted-foreground">
           Account email: <span className="text-foreground">{account.email || "No email on this session."}</span>
         </p>
@@ -188,7 +188,7 @@ export function AccountSection({ account }: { account: AccountSnapshot }) {
   if (account.status === "unconfigured") {
     return (
       <section className="max-w-xl rounded-md border border-border bg-card p-3">
-        <h2 className="text-base font-semibold">Account</h2>
+        <h2 className="text-sm font-medium">Account</h2>
         <p className="mt-1 text-sm leading-6 text-muted-foreground">
           Account sign-in is not configured. Add the Supabase URL and anon key to turn it on. This browser&apos;s
           ledger still works, and nothing on this page is uploaded.
@@ -203,7 +203,7 @@ export function AccountSection({ account }: { account: AccountSnapshot }) {
   if (account.status === "error") {
     return (
       <section className="max-w-xl rounded-md border border-border bg-card p-3">
-        <h2 className="text-base font-semibold">Account</h2>
+        <h2 className="text-sm font-medium">Account</h2>
         <p role="alert" className="mt-1 text-sm leading-6 text-destructive">
           {account.message}
         </p>
@@ -215,7 +215,7 @@ export function AccountSection({ account }: { account: AccountSnapshot }) {
   if (account.status === "signed-out") {
     return (
       <section className="max-w-xl rounded-md border border-border bg-card p-3">
-        <h2 className="text-base font-semibold">Account</h2>
+        <h2 className="text-sm font-medium">Account</h2>
         <p className="mt-1 text-sm leading-6 text-muted-foreground">No session was found for this browser.</p>
         <Link href="/login?next=/settings" className={`${textLinkClass} mt-3 inline-block`}>
           Sign in

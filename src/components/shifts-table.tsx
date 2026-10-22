@@ -96,9 +96,11 @@ export function ShiftsTable({
 
   return (
     <div className="overflow-x-auto">
-      <p className="border-b border-border px-3 py-1.5 text-[11px] leading-4 text-muted-foreground">
-        Est. fuel is kilometres × L/100 km × pump price for that shift. It is not a fill-up. Unavailable means the figure cannot be priced.
-      </p>
+      {compact ? null : (
+        <p className="border-b border-border px-3 py-1.5 text-[11px] leading-4 text-muted-foreground">
+          Est. fuel is kilometres × L/100 km × pump price for that shift. It is not a fill-up. Unavailable means the figure cannot be priced.
+        </p>
+      )}
       <table className="w-full min-w-[920px] text-left text-sm">
         <caption className="sr-only">Shifts you have logged</caption>
         <thead>

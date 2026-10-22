@@ -42,8 +42,8 @@ function TargetForm({ stored }: { stored: number }) {
       onSubmit={saveTarget}
       className="rounded-md border border-border bg-card p-3 lg:col-span-2"
     >
-      <h2 className="text-base font-semibold">Weekly income target</h2>
-      <p className="mt-1 text-sm leading-6 text-muted-foreground">
+      <h2 className="text-sm font-medium">Weekly income target</h2>
+      <p className="mt-1 text-sm leading-5 text-muted-foreground">
         Gross pay you want from shifts this week. Leave blank to clear it.
       </p>
       <label htmlFor="weekly-target-amount" className="mt-4 block text-sm font-medium">

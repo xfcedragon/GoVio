@@ -18,7 +18,7 @@ export function FigureRow({
             {item.label}
           </dt>
           <dd className="mt-1">
-            <Numeric tone={item.tone ?? "default"} className="text-[15px] leading-none">
+            <Numeric tone={item.tone ?? "default"} className="text-base leading-none">
               {item.value}
             </Numeric>
           </dd>
@@ -28,5 +28,27 @@ export function FigureRow({
         </div>
       ))}
     </dl>
+  )
+}
+
+export function LeadFigure({
+  label,
+  value,
+  hint,
+  tone = "default",
+}: {
+  label: string
+  value: string
+  hint?: string
+  tone?: FigureTone
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
+      <Numeric tone={tone} className="mt-1.5 block text-[1.75rem] leading-none sm:text-[2rem]">
+        {value}
+      </Numeric>
+      {hint ? <p className="mt-2 max-w-xs text-xs leading-4 text-muted-foreground">{hint}</p> : null}
+    </div>
   )
 }

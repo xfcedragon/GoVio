@@ -68,7 +68,7 @@ function SettingsForm() {
 
   return (
     <form onSubmit={save} className="max-w-xl space-y-4 rounded-md border border-border bg-card p-3">
-      <h2 className="text-base font-semibold">Profile</h2>
+      <h2 className="text-sm font-medium">Profile</h2>
       <Field label="Display name" htmlFor="settings-name" hint="Shown next to the date on Overview. Leave blank to skip it.">
         <Input
           className="h-10"
@@ -93,7 +93,7 @@ function SettingsForm() {
         </select>
       </Field>
 
-      <h2 className="pt-2 text-base font-semibold">Vehicle assumption</h2>
+      <h2 className="pt-2 text-sm font-medium">Vehicle assumption</h2>
       <p className="text-sm leading-6 text-muted-foreground">
         Used when Hourly Earnings estimates fuel consumed, and when a week has kilometres and no fill-up. A vehicle
         profile can store its own L/100 km for the tax records. This ledger rate stays here. The weekly pay target is
@@ -150,7 +150,7 @@ export function SettingsView({ account }: { account: ReactNode }) {
       <SettingsForm key={settingsKey(data.settings)} />
 
       <section className="max-w-xl rounded-md border border-border bg-card p-3">
-        <h2 className="text-base font-semibold">Data in this browser</h2>
+        <h2 className="text-sm font-medium">Data in this browser</h2>
         <p className="mt-1 text-sm leading-6 text-muted-foreground">
           GoVio keeps this ledger in local storage and receipt photos in this browser&apos;s IndexedDB.
           Nothing is uploaded. A later migration can copy records into an account only after you review them

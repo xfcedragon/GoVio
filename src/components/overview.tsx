@@ -6,7 +6,7 @@ import { textLinkClass } from "@/components/field"
 import { EmptyState } from "@/components/empty-state"
 import { Button } from "@/components/ui/button"
 import { Section } from "@/components/page-header"
-import { FigureRow, type FigureTone } from "@/components/stat-card"
+import { FigureRow, LeadFigure, type FigureTone } from "@/components/stat-card"
 import { ShiftsTable } from "@/components/shifts-table"
 import { WeeklyTargetCard } from "@/components/weekly-target"
 import { Numeric } from "@/components/numeric"
@@ -118,82 +118,86 @@ export function Overview() {
         </div>
       </div>
 
-      <section aria-label="Earnings summary" className="rounded-md border border-border bg-card">
-        <div className="flex flex-wrap items-baseline justify-between gap-2 px-3 pt-3">
+      <section aria-label="Earnings summary" className="overflow-hidden rounded-md border border-border bg-card">
+        <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-3 py-2">
           <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">This week</h2>
           <p className="text-xs text-muted-foreground">
             {periodLabel}
             {" · CAD"}
           </p>
         </div>
-        <div className="px-3 py-3">
-          <FigureRow
-            columns="grid-cols-2 sm:grid-cols-3"
-            items={[
-              {
-                label: "Gross earnings",
-                value: hasEligible && report ? formatCad(report.totalEarnings) : report && report.excludedCount > 0 ? "Unavailable" : "—",
-                tone: earnTone(hasEligible && report ? report.totalEarnings : null, hasEligible),
-                hint: hasEligible && report ? "Eligible payout" : report && report.excludedCount > 0 ? "Clock times do not produce hours" : "No shifts in this week",
-              },
-              {
-                label: "Gross / hour",
-                value: rateText(report?.grossHourly ?? null, hasEligible),
-                tone: earnTone(report?.grossHourly ?? null, hasEligible && report?.grossHourly != null),
-                hint:
-                  hasEligible && report && report.grossHourly !== null
-                    ? `${formatCad(report.totalEarnings)} ÷ ${formatHours(report.totalHours)}`
-                    : "Total eligible gross ÷ total hours",
-              },
-              {
-                label: "Hours worked",
-                value: hasEligible && report ? formatHours(report.totalHours) : report && report.excludedCount > 0 ? "Unavailable" : "—",
-                tone: hasEligible ? "default" : "muted",
-                hint: hasEligible && report ? `${report.shiftCount} with usable hours` : "From clock times",
-              },
-            ]}
-          />
-        </div>
-        <div className="border-t border-border px-3 py-3">
-          <FigureRow
-            columns="grid-cols-2 lg:grid-cols-4"
-            items={[
-              {
-                label: "Fuel purchases",
-                value: moneyText(report?.fillupSpend ?? null, report !== null),
-                tone: report?.fillupSpend == null ? "muted" : "default",
-                hint: "Cash at the pump. Not fuel consumed.",
-              },
-              {
-                label: "Est. fuel consumed",
-                value: moneyText(report?.consumedFuel ?? null, report !== null),
-                tone: report?.consumedFuel == null ? "muted" : "default",
-                hint: consumedHint(report),
-              },
-              {
-                label: "Estimated net",
-                value: moneyText(report?.estimatedNet ?? null, report !== null),
-                tone: netTone(report?.estimatedNet ?? null, report !== null && report?.estimatedNet != null),
-                hint: "Gross minus estimated fuel consumed",
-              },
-              {
-                label: "Net / hour",
-                value: rateText(report?.estimatedNetHourly ?? null, report !== null),
-                tone: netTone(report?.estimatedNetHourly ?? null, report !== null && report?.estimatedNetHourly != null),
-                hint: "Estimate. Fill-ups are not subtracted here.",
-              },
-            ]}
-          />
-        </div>
-        {report && report.excludedCount > 0 ? (
-          <p className="border-t border-border px-3 py-2 text-[11px] leading-4 text-muted-foreground">
-            {report.excludedCount === 1
-              ? "1 shift this week is left out of the hourly figures. Matching start and end count as 0 hours."
-              : `${report.excludedCount} shifts this week are left out of the hourly figures. Matching start and end count as 0 hours.`}
-          </p>
-        ) : null}
-        <div className="border-t border-border px-3 py-2.5">
-          <WeeklyTargetCard />
+        <div className="grid lg:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)]">
+          <div className="border-b border-border px-3 py-3 lg:border-r lg:border-b-0">
+            <LeadFigure
+              label="Gross earnings"
+              value={hasEligible && report ? formatCad(report.totalEarnings) : report && report.excludedCount > 0 ? "Unavailable" : "—"}
+              tone={earnTone(hasEligible && report ? report.totalEarnings : null, hasEligible)}
+              hint={hasEligible && report ? "Eligible payout" : report && report.excludedCount > 0 ? "Clock times do not produce hours" : "No shifts in this week"}
+            />
+            <div className="mt-4 border-t border-border pt-3">
+              <WeeklyTargetCard />
+            </div>
+          </div>
+          <div className="px-3 py-3">
+            <FigureRow
+              columns="grid-cols-2"
+              items={[
+                {
+                  label: "Hours worked",
+                  value: hasEligible && report ? formatHours(report.totalHours) : report && report.excludedCount > 0 ? "Unavailable" : "—",
+                  tone: hasEligible ? "default" : "muted",
+                  hint: hasEligible && report ? `${report.shiftCount} with usable hours` : "From clock times",
+                },
+                {
+                  label: "Gross / hour",
+                  value: rateText(report?.grossHourly ?? null, hasEligible),
+                  tone: earnTone(report?.grossHourly ?? null, hasEligible && report?.grossHourly != null),
+                  hint:
+                    hasEligible && report && report.grossHourly !== null
+                      ? `${formatCad(report.totalEarnings)} ÷ ${formatHours(report.totalHours)}`
+                      : "Total eligible gross ÷ total hours",
+                },
+                {
+                  label: "Est. fuel consumed",
+                  value: moneyText(report?.consumedFuel ?? null, report !== null),
+                  tone: report?.consumedFuel == null ? "muted" : "default",
+                  hint: consumedHint(report),
+                },
+                {
+                  label: "Fuel purchases",
+                  value: moneyText(report?.fillupSpend ?? null, report !== null),
+                  tone: report?.fillupSpend == null ? "muted" : "default",
+                  hint: "Cash at the pump. Not fuel consumed.",
+                },
+              ]}
+            />
+            <div className="mt-3 border-t border-border pt-3">
+              <FigureRow
+                columns="grid-cols-2"
+                items={[
+                  {
+                    label: "Estimated net",
+                    value: moneyText(report?.estimatedNet ?? null, report !== null),
+                    tone: netTone(report?.estimatedNet ?? null, report !== null && report?.estimatedNet != null),
+                    hint: "Gross minus estimated fuel consumed",
+                  },
+                  {
+                    label: "Net / hour",
+                    value: rateText(report?.estimatedNetHourly ?? null, report !== null),
+                    tone: netTone(report?.estimatedNetHourly ?? null, report !== null && report?.estimatedNetHourly != null),
+                    hint: "Estimate. Fill-ups are not subtracted here.",
+                  },
+                ]}
+              />
+            </div>
+            {report && report.excludedCount > 0 ? (
+              <p className="mt-3 border-t border-border pt-2 text-[11px] leading-4 text-muted-foreground">
+                {report.excludedCount === 1
+                  ? "1 shift this week is left out of the hourly figures. Matching start and end count as 0 hours."
+                  : `${report.excludedCount} shifts this week are left out of the hourly figures. Matching start and end count as 0 hours.`}
+              </p>
+            ) : null}
+          </div>
         </div>
       </section>
 
@@ -203,7 +207,7 @@ export function Overview() {
             {report.days.map((day) => (
               <div key={day.date} className="grid grid-cols-[5.5rem_1fr_4.5rem_6.25rem] items-center gap-3 text-sm">
                 <span className="text-xs text-muted-foreground">{formatMonthDay(day.date)}</span>
-                <div className="h-1 bg-white/[0.06]" title={`${formatCad(day.earnings)} over ${formatHours(day.hours)}`}>
+                <div className="h-1.5 bg-white/[0.06]" title={`${formatCad(day.earnings)} over ${formatHours(day.hours)}`}>
                   <div
                     className="h-full bg-chart-1"
                     style={{ width: peakDay > 0 ? `${(day.earnings / peakDay) * 100}%` : "0%" }}

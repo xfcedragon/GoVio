@@ -258,13 +258,13 @@ export function VehicleView() {
           ) : null}
         </div>
 
-        <p className="rounded-md border border-border bg-card px-3 py-3 text-sm leading-5 text-muted-foreground">
+        <p className="rounded-md border border-border bg-card px-3 py-2 text-sm leading-5 text-muted-foreground">
           {DISCLAIMER} Claimed totals add only amounts you marked claimed. Unreviewed and not-claimed amounts stay out. Wear estimates and estimated fuel consumed stay out as well.
         </p>
 
         {summary ? (
           <>
-            <section aria-label="Year totals" className="rounded-md border border-border bg-card px-3 py-3">
+            <section aria-label="Year totals" className="rounded-md border border-border bg-card px-3 py-2">
               <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Year</h2>
               <div className="mt-3">
                 <FigureRow
@@ -319,20 +319,20 @@ export function VehicleView() {
                 <table className="w-full min-w-[640px] text-left text-sm">
                   <caption className="sr-only">Expenses by category</caption>
                   <thead>
-                    <tr className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                      <th className="px-5 py-3 font-medium">Category</th>
-                      <th className="px-3 py-3 font-medium">Cash</th>
-                      <th className="px-3 py-3 font-medium">Claimed</th>
-                      <th className="px-5 py-3 font-medium">Unreviewed</th>
+                    <tr className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                      <th className="px-3 py-2 font-medium">Category</th>
+                      <th className="px-3 py-2 text-right font-medium">Cash</th>
+                      <th className="px-3 py-2 text-right font-medium">Claimed</th>
+                      <th className="px-3 py-2 text-right font-medium">Unreviewed</th>
                     </tr>
                   </thead>
                   <tbody>
                     {summary.expensesByCategory.map((category) => (
                       <tr key={category.id} className="border-t border-border">
-                        <td className="px-5 py-3">{category.label}</td>
-                        <td className="px-3 py-3"><Numeric>{formatCad(category.cash)}</Numeric></td>
-                        <td className="px-3 py-3"><Numeric>{formatCad(category.claimed)}</Numeric></td>
-                        <td className="px-5 py-3"><Numeric>{formatCad(category.unreviewed)}</Numeric></td>
+                        <td className="px-3 py-2">{category.label}</td>
+                        <td className="px-3 py-2 text-right"><Numeric>{formatCad(category.cash)}</Numeric></td>
+                        <td className="px-3 py-2 text-right"><Numeric>{formatCad(category.claimed)}</Numeric></td>
+                        <td className="px-3 py-2 text-right"><Numeric>{formatCad(category.unreviewed)}</Numeric></td>
                       </tr>
                     ))}
                   </tbody>
@@ -340,28 +340,28 @@ export function VehicleView() {
               </div>
             </section>
 
-            <section className="rounded-md border border-border bg-card px-5 py-4">
-              <h2 className="text-base font-semibold">Wear and operating cost</h2>
+            <section className="rounded-md border border-border bg-card px-3 py-2">
+              <h2 className="text-sm font-medium">Wear and operating cost</h2>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
                 Estimates. They are not included in the claimed total. Wear uses {summary.wear.baseLabel}
                 {summary.wear.rate !== null ? ` at ${formatCad(summary.wear.rate)} per km` : ""}.
               </p>
               <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
-                  <dt className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">Recorded cash</dt>
+                  <dt className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Recorded cash</dt>
                   <dd className="mt-1"><Numeric>{formatCad(summary.operating.cash)}</Numeric></dd>
                 </div>
                 <div>
-                  <dt className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">Estimated wear</dt>
+                  <dt className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Estimated wear</dt>
                   <dd className="mt-1"><Numeric>{summary.wear.cost === null ? "—" : formatCad(summary.wear.cost)}</Numeric></dd>
                 </div>
                 <div>
-                  <dt className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">Cash plus wear</dt>
+                  <dt className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Cash plus wear</dt>
                   <dd className="mt-1"><Numeric>{summary.operating.total === null ? "—" : formatCad(summary.operating.total)}</Numeric></dd>
                   <p className="mt-1 text-xs text-muted-foreground">A mix of actual cash and an estimate.</p>
                 </div>
                 <div>
-                  <dt className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">Estimated cost per km</dt>
+                  <dt className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Estimated cost per km</dt>
                   <dd className="mt-1"><Numeric>{summary.operating.perKm === null ? "—" : `${formatCad(summary.operating.perKm)}/km`}</Numeric></dd>
                   <p className="mt-1 text-xs text-muted-foreground">Divided by {summary.operating.perKmBaseLabel}.</p>
                 </div>
@@ -369,8 +369,8 @@ export function VehicleView() {
             </section>
 
             {summary.warnings.length > 0 ? (
-              <section className="rounded-md border border-warning/30 bg-warning/10 px-5 py-4">
-                <h2 className="text-base font-semibold text-warning">Missing records and estimates</h2>
+              <section className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2">
+                <h2 className="text-sm font-medium text-warning">Missing records and estimates</h2>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-warning">
                   {summary.warnings.map((warning) => (
                     <li key={warning}>{warning}</li>
@@ -386,15 +386,15 @@ export function VehicleView() {
             ) : null}
           </>
         ) : (
-          <section id="expenses" className="rounded-md border border-border bg-card px-3 py-3">
+          <section id="expenses" className="rounded-md border border-border bg-card px-3 py-2">
             <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Expenses</h2>
             <p className="mt-2 text-sm text-muted-foreground">The year filter uses the date on this device. Totals appear once that date is available.</p>
           </section>
         )}
 
         <section className="rounded-md border border-border bg-card">
-          <div className="flex items-center justify-between px-5 py-4">
-            <h2 className="text-base font-semibold">Vehicles</h2>
+          <div className="flex items-center justify-between px-3 py-2">
+            <h2 className="text-sm font-medium">Vehicles</h2>
           </div>
           {data.vehicles.length === 0 ? (
             <EmptyState
@@ -411,7 +411,7 @@ export function VehicleView() {
                 const current = currentOdometer(data.odometerReadings, vehicle.id)
                 const covered = year !== null && data.yearCoverage.some((item) => item.vehicleId === vehicle.id && item.year === year && item.fullYearLogged)
                 return (
-                  <li key={vehicle.id} className="px-5 py-4">
+                  <li key={vehicle.id} className="px-3 py-2">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="font-medium">{vehicleLabel(vehicle)}</p>
@@ -468,29 +468,29 @@ export function VehicleView() {
               <table className="w-full min-w-[760px] text-left text-sm">
                 <caption className="sr-only">Mileage log</caption>
                 <thead>
-                  <tr className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                    <th className="px-5 py-3 font-medium">Date</th>
-                    <th className="px-3 py-3 font-medium">Trip</th>
-                    <th className="px-3 py-3 font-medium">Distance</th>
-                    <th className="px-3 py-3 font-medium">Class</th>
-                    <th className="px-5 py-3 font-medium">In totals</th>
+                  <tr className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                    <th className="px-3 py-2 font-medium">Date</th>
+                    <th className="px-3 py-2 font-medium">Trip</th>
+                    <th className="px-3 py-2 font-medium">Distance</th>
+                    <th className="px-3 py-2 font-medium">Class</th>
+                    <th className="px-3 py-2 font-medium">In totals</th>
                   </tr>
                 </thead>
                 <tbody>
                   {summary.trips.map((trip) => (
                     <tr key={trip.id} className="border-t border-border">
-                      <td className="px-5 py-3">{formatWeekdayDate(trip.date)}</td>
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-2">{formatWeekdayDate(trip.date)}</td>
+                      <td className="px-3 py-2">
                         <p>{trip.kind === "shift" ? "Shift" : "Mileage"} · {trip.label || "—"}</p>
                         {trip.note ? <p className="text-xs text-muted-foreground">{trip.note}</p> : null}
                         {trip.distanceWarning ? <p className="text-xs text-warning">{trip.distanceWarning}</p> : null}
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-2">
                         <Numeric>{trip.distanceSource === "missing" ? "Missing" : formatKm(trip.recordedKm)}</Numeric>
                         <p className="text-xs text-muted-foreground">{distanceLabel(trip.distanceSource)}</p>
                       </td>
-                      <td className="px-3 py-3">{purposeLabel(trip.purpose)}</td>
-                      <td className="px-5 py-3">{trip.included ? "Included" : "Left out · overlap"}</td>
+                      <td className="px-3 py-2">{purposeLabel(trip.purpose)}</td>
+                      <td className="px-3 py-2">{trip.included ? "Included" : "Left out · overlap"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -502,7 +502,7 @@ export function VehicleView() {
           {data.mileage.length > 0 ? (
             <ul className="divide-y divide-border border-t border-border">
               {data.mileage.map((entry) => (
-                <li key={entry.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
+                <li key={entry.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
                   <span>
                     {entry.date} · {entry.shiftId ? "Linked to a shift" : "Not a shift"} · {entry.description || "Mileage entry"}
                   </span>
@@ -586,7 +586,7 @@ export function VehicleView() {
                         ))}
                       </select>
                     </td>
-                    <td className="px-5 py-3" />
+                    <td className="px-3 py-2" />
                   </tr>
                 ))}
               </tbody>
@@ -595,8 +595,8 @@ export function VehicleView() {
         </section>
 
         <section className="rounded-md border border-border bg-card">
-          <div className="px-5 py-4">
-            <h2 className="text-base font-semibold">History</h2>
+          <div className="px-3 py-2">
+            <h2 className="text-sm font-medium">History</h2>
             <label className="mt-3 grid gap-1.5 text-sm">
               <span className="text-muted-foreground">Search shifts, mileage, and receipts</span>
               <input className={controlClass} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Merchant, area, date, or note" />
@@ -607,41 +607,41 @@ export function VehicleView() {
               <table className="w-full min-w-[680px] text-left text-sm">
                 <caption className="sr-only">Searchable history</caption>
                 <thead>
-                  <tr className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                    <th className="px-5 py-3 font-medium">Date</th>
-                    <th className="px-3 py-3 font-medium">Kind</th>
-                    <th className="px-3 py-3 font-medium">Detail</th>
-                    <th className="px-3 py-3 font-medium">Km</th>
-                    <th className="px-5 py-3 font-medium">Money</th>
+                  <tr className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                    <th className="px-3 py-2 font-medium">Date</th>
+                    <th className="px-3 py-2 font-medium">Kind</th>
+                    <th className="px-3 py-2 font-medium">Detail</th>
+                    <th className="px-3 py-2 font-medium">Km</th>
+                    <th className="px-3 py-2 font-medium">Money</th>
                   </tr>
                 </thead>
                 <tbody>
                   {history.map((row) => (
                     <tr key={`${row.kind}-${row.id}`} className="border-t border-border">
-                      <td className="px-5 py-3">{row.date}</td>
-                      <td className="px-3 py-3">{row.kind}</td>
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-2">{row.date}</td>
+                      <td className="px-3 py-2">{row.kind}</td>
+                      <td className="px-3 py-2">
                         <p>{row.detail || "—"}</p>
                         <p className="text-xs text-muted-foreground">{row.status}</p>
                       </td>
-                      <td className="px-3 py-3">{row.km || "—"}</td>
-                      <td className="px-5 py-3">{row.money || "—"}</td>
+                      <td className="px-3 py-2">{row.km || "—"}</td>
+                      <td className="px-3 py-2">{row.money || "—"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <p className="px-5 pb-5 text-sm text-muted-foreground">{needle ? "Nothing matches that search." : "Nothing in this year yet."}</p>
+            <p className="px-3 pb-3 text-sm text-muted-foreground">{needle ? "Nothing matches that search." : "Nothing in this year yet."}</p>
           )}
         </section>
       </div>
 
       {summary ? (
-        <article id="annual-summary" className="space-y-4 rounded-md border border-border bg-card px-5 py-5">
+        <article id="annual-summary" className="space-y-4 rounded-md border border-border bg-card px-4 py-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-xl font-semibold">Annual summary · {summary.year}</h2>
+              <h2 className="text-lg font-medium">Annual summary · {summary.year}</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{DISCLAIMER}</p>
             </div>
             <div className="no-print flex flex-wrap gap-2">
@@ -666,7 +666,7 @@ export function VehicleView() {
               ? `Business-use percentage ${summary.businessUse.percentage.toFixed(1)}% (${formatKm(summary.businessUse.numeratorKm)} / ${formatKm(summary.businessUse.denominatorKm)}). ${summary.businessUse.explanation}`
               : summary.businessUse.reason}
           </p>
-          <h3 className="text-base font-semibold">Mileage log</h3>
+          <h3 className="text-sm font-medium">Mileage log</h3>
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="text-xs text-muted-foreground">
@@ -687,14 +687,14 @@ export function VehicleView() {
               ))}
             </tbody>
           </table>
-          <h3 className="text-base font-semibold">Expenses by category</h3>
+          <h3 className="text-sm font-medium">Expenses by category</h3>
           <ul className="text-sm leading-6">
             {summary.expensesByCategory.map((category) => (
               <li key={`print-${category.id}`}>{category.label}: cash {formatCad(category.cash)}, claimed {formatCad(category.claimed)}, unreviewed {formatCad(category.unreviewed)}</li>
             ))}
           </ul>
           <p className="text-sm">Claimed total {formatCad(summary.claimedTotal)}. This is your classification, not a CRA figure. Maintenance cash {formatCad(summary.maintenanceCash)}.</p>
-          <h3 className="text-base font-semibold">Fuel purchases</h3>
+          <h3 className="text-sm font-medium">Fuel purchases</h3>
           <p className="text-sm leading-6">
             Cash {formatCad(summary.fuel.cash)}. Litres purchased {formatLitres(summary.fuel.litresPurchased)}. Estimated litres consumed {summary.fuel.consumedLitres === null ? "unavailable" : formatLitres(summary.fuel.consumedLitres)}. Estimated cost consumed {summary.fuel.consumedCost === null ? "unavailable" : formatCad(summary.fuel.consumedCost)}. {summary.fuel.note}
           </p>
@@ -706,7 +706,7 @@ export function VehicleView() {
               <li key={`fuel-exp-${expense.id}`}>{expense.date} · receipt {expense.id} · {expense.merchant || "No merchant"} · {formatCad(expense.total)} · {claimLabel(expense.claimStatus)}{expense.fuelFillId ? ` · linked to fill-up ${expense.fuelFillId}` : ""}</li>
             ))}
           </ul>
-          <h3 className="text-base font-semibold">Receipt index</h3>
+          <h3 className="text-sm font-medium">Receipt index</h3>
           {summary.receiptIndex.length === 0 ? <p className="text-sm">No receipts dated in this year.</p> : (
             <ul className="text-sm leading-6">
               {summary.receiptIndex.map((receipt) => (
@@ -716,7 +716,7 @@ export function VehicleView() {
               ))}
             </ul>
           )}
-          <h3 className="text-base font-semibold">Warnings</h3>
+          <h3 className="text-sm font-medium">Warnings</h3>
           {summary.warnings.length === 0 ? <p className="text-sm">No warnings for this year.</p> : (
             <ul className="list-disc pl-5 text-sm leading-6">
               {summary.warnings.map((warning) => <li key={`warn-${warning}`}>{warning}</li>)}
@@ -727,7 +727,7 @@ export function VehicleView() {
           </p>
         </article>
       ) : (
-        <article id="annual-summary" className="rounded-md border border-border bg-card px-3 py-3">
+        <article id="annual-summary" className="rounded-md border border-border bg-card px-3 py-2">
           <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Reports</h2>
           <p className="mt-2 text-sm text-muted-foreground">The year filter uses the date on this device. The annual report appears once that date is available.</p>
         </article>
@@ -770,7 +770,7 @@ export function VehicleView() {
         {pendingDelete ? (
           <div className="fixed inset-0 z-40 grid place-items-center bg-black/70 px-4">
             <div className="w-full max-w-md rounded-md bg-popover p-4 text-popover-foreground ring-1 ring-border" role="dialog" aria-modal="true" aria-labelledby="delete-title">
-              <h2 id="delete-title" className="text-base font-semibold">
+              <h2 id="delete-title" className="text-sm font-medium">
                 {pendingDelete.type === "vehicle" ? "Remove this vehicle?" : pendingDelete.type === "mileage" ? "Delete this mileage entry?" : "Delete this receipt?"}
               </h2>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">

@@ -31,7 +31,7 @@ function decimalInput(value: number) {
 function SampleNotice({ demo }: { demo: boolean }) {
   if (!demo) return null
   return (
-    <p className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs leading-5 text-warning">
+    <p className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs leading-5 text-warning">
       Sample week is on. This entry stays with the sample until you clear it.
     </p>
   )
@@ -266,7 +266,7 @@ function ShiftForm({
           onChange={(event) => setNote(event.target.value)}
         />
       </Field>
-      <details className="rounded-lg border border-border px-3 py-2" open={logOpen} onToggle={(event) => setLogOpen(event.currentTarget.open)}>
+      <details className="rounded-md border border-border px-3 py-2" open={logOpen} onToggle={(event) => setLogOpen(event.currentTarget.open)}>
         <summary className="cursor-pointer text-sm font-medium">Vehicle log (optional)</summary>
         <div className="mt-3 grid gap-4">
           <p className="text-xs leading-5 text-muted-foreground">

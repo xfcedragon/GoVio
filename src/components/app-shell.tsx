@@ -102,7 +102,7 @@ function NavLink({
         "relative block rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
         compact && "shrink-0 whitespace-nowrap py-1",
         active &&
-          "bg-sidebar-accent text-foreground before:absolute before:inset-y-1.5 before:left-0 before:w-px before:bg-foreground",
+          "bg-sidebar-accent text-foreground before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:bg-foreground",
       )}
     >
       {label}
@@ -204,7 +204,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="border-b border-border px-4 py-3 sm:px-6">
           <Wordmark />
         </header>
-        <main id="main" className="mx-auto w-full max-w-md px-4 py-6 sm:px-6">
+        <main id="main" className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 py-8 sm:px-6">
           {children}
         </main>
       </div>
