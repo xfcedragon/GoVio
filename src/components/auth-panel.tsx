@@ -404,6 +404,13 @@ export function AuthPanel({
   if (!configured) return <Unconfigured />
   if (mode === "signup") return <SignUpForm nextPath={nextPath} />
   if (mode === "forgot") return <ForgotForm />
-  if (mode === "reset") return <ResetForm email={resetEmail} blocked={resetReady ? null : resetBlockedMessage} />
+  if (mode === "reset") {
+    return (
+      <ResetForm
+        email={resetEmail}
+        blocked={resetReady ? null : resetBlockedMessage || "This reset link is invalid or has expired. Request a new one."}
+      />
+    )
+  }
   return <SignInForm nextPath={nextPath} error={error} notice={notice} />
 }

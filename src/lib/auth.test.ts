@@ -8,6 +8,9 @@ import {
   initialAuthState,
   isExpoSupabaseConfigured,
   isSupabaseConfigured,
+  loginBanner,
+  loginCodeForSessionFailure,
+  protectedRouteDecision,
   safeNextPath,
   sessionFailure,
   sessionOwnsRow,
@@ -219,4 +222,158 @@ test("session and credential errors stay specific", () => {
     authErrorMessage({ code: "email_not_confirmed", message: "Email not confirmed" }, "sign-in"),
     "This email is not verified yet. Open the confirmation link, then sign in.",
   )
+})
+
+test("a placeholder on either public value leaves sign-in unconfigured", () => {
+  assert.equal(
+    isSupabaseConfigured({
+      NEXT_PUBLIC_SUPABASE_URL: "https://your_project_ref.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+    }),
+    false,
+  )
+  assert.equal(
+    isSupabaseConfigured({
+      NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "your_supabase_anon_key",
+    }),
+    false,
+  )
+})
+
+test("unverified, bad credentials, expired session, expired link, and missing env stay distinct", () => {
+  const unverified = authErrorMessage({ code: "email_not_confirmed", message: "Email not confirmed" }, "sign-in")
+  const credentials = authErrorMessage({ code: "invalid_credentials", message: "Invalid login credentials" }, "sign-in")
+  const session = authErrorMessage({ message: "JWT expired" }, "session")
+  const link = authErrorMessage({ code: "otp_expired", message: "Email link is invalid or has expired" }, "callback")
+  const missing = loginBanner("unconfigured")
+  assert.equal(session, "Your session has expired. Sign in again.")
+  assert.equal(link, "This link has expired. Request a new one.")
+  assert.equal(loginCodeForSessionFailure("expired"), "session")
+  assert.equal(loginBanner("session"), session)
+  assert.equal(loginBanner("expired"), link)
+  assert.equal(new Set([unverified, credentials, session, link, missing]).size, 5)
+})
+
+function query(search: string) {
+  return new URLSearchParams(search.startsWith("?") ? search.slice(1) : search)
+}
+
+test("unconfigured installs do not redirect dashboard routes", () => {
+  for (const pathname of ["/", "/shifts", "/fuel", "/hourly", "/bills", "/vehicle", "/settings"]) {
+    const decision = protectedRouteDecision({
+      configured: false,
+      pathname,
+      search: "",
+      next: null,
+      userId: null,
+      failure: null,
+    })
+    assert.equal(decision.action, "continue")
+    assert.equal(decision.pathname, pathname)
+  }
+})
+
+test("unsigned dashboard visits go to login with a safe next path", () => {
+  for (const pathname of ["/", "/shifts", "/fuel", "/hourly", "/bills", "/vehicle", "/settings"]) {
+    const decision = protectedRouteDecision({
+      configured: true,
+      pathname,
+      search: "",
+      next: null,
+      userId: null,
+      failure: null,
+    })
+    assert.equal(decision.action, "redirect")
+    assert.equal(decision.pathname, "/login")
+    assert.equal(query(decision.search).get("next"), pathname)
+    assert.equal(query(decision.search).get("error"), null)
+  }
+
+  const withQuery = protectedRouteDecision({
+    configured: true,
+    pathname: "/shifts",
+    search: "?week=1",
+    next: null,
+    userId: null,
+    failure: null,
+  })
+  assert.equal(query(withQuery.search).get("next"), "/shifts?week=1")
+
+  const expired = protectedRouteDecision({
+    configured: true,
+    pathname: "/settings",
+    search: "",
+    next: null,
+    userId: null,
+    failure: "expired",
+  })
+  assert.equal(query(expired.search).get("error"), "session")
+  assert.equal(query(expired.search).get("next"), "/settings")
+  assert.equal(loginBanner(query(expired.search).get("error") ?? ""), "Your session has expired. Sign in again.")
+})
+
+test("signed-in login and signup follow a safe next path", () => {
+  const settings = protectedRouteDecision({
+    configured: true,
+    pathname: "/login",
+    search: "?next=%2Fsettings",
+    next: "/settings",
+    userId: "user-1",
+    failure: null,
+  })
+  assert.equal(settings.action, "redirect")
+  assert.equal(settings.pathname, "/settings")
+  assert.equal(settings.search, "")
+  assert.equal(settings.hash, "")
+
+  const hashed = protectedRouteDecision({
+    configured: true,
+    pathname: "/signup",
+    search: "",
+    next: "/vehicle#mileage",
+    userId: "user-1",
+    failure: null,
+  })
+  assert.equal(hashed.pathname, "/vehicle")
+  assert.equal(hashed.hash, "#mileage")
+
+  for (const next of ["https://evil.example/phish", "//evil.example", "/\\evil.example", null]) {
+    const decision = protectedRouteDecision({
+      configured: true,
+      pathname: "/login",
+      search: "",
+      next,
+      userId: "user-1",
+      failure: null,
+    })
+    assert.equal(decision.action, "redirect")
+    assert.equal(decision.pathname, "/")
+    assert.equal(decision.search, "")
+    assert.equal(decision.hash, "")
+  }
+})
+
+test("auth pages, the callback, and account API stay reachable without a session", () => {
+  for (const pathname of ["/login", "/signup", "/forgot-password", "/reset-password", "/auth/callback", "/api/account"]) {
+    const decision = protectedRouteDecision({
+      configured: true,
+      pathname,
+      search: "",
+      next: "//evil.example",
+      userId: null,
+      failure: "network",
+    })
+    assert.equal(decision.action, "continue", pathname)
+  }
+
+  const home = protectedRouteDecision({
+    configured: true,
+    pathname: "/",
+    search: "",
+    next: null,
+    userId: "user-1",
+    failure: null,
+  })
+  assert.equal(home.action, "continue")
 })

@@ -3,7 +3,7 @@ import "server-only"
 import { connection } from "next/server"
 import { isAccountDeletionConfigured } from "@/lib/account-deletion"
 import type { AccountSnapshot } from "@/lib/account-snapshot"
-import { authErrorMessage, isSupabaseConfigured } from "@/lib/auth"
+import { asAuthFailure, authErrorMessage, isExpiredAuthFailure, isSupabaseConfigured, sessionFailure } from "@/lib/auth"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export type { AccountSnapshot }
@@ -67,17 +67,34 @@ export async function loadResetSession(): Promise<{
   }
   const supabase = await createSupabaseServerClient()
   if (!supabase) return { configured: false, sessionReady: false, email: null, message: null }
-  const { data, error } = await supabase.auth.getUser()
-  if (error || !data.user) {
+  try {
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data.user) {
+      const expired = error && (isExpiredAuthFailure(error) || sessionFailure(error) === "expired")
+      return {
+        configured: true,
+        sessionReady: false,
+        email: null,
+        message:
+          !error || missingSession(error) || expired
+            ? "This reset link is invalid or has expired. Request a new one."
+            : authErrorMessage(error, "session"),
+      }
+    }
+    return { configured: true, sessionReady: true, email: data.user.email ?? null, message: null }
+  } catch (error) {
+    const failure = asAuthFailure(error)
+    const kind = sessionFailure(failure)
     return {
       configured: true,
       sessionReady: false,
       email: null,
       message:
-        !error || missingSession(error)
-          ? "This reset link is invalid or has expired. Request a new one."
-          : authErrorMessage(error, "session"),
+        kind === "network"
+          ? authErrorMessage(failure, "session")
+          : kind === "config"
+            ? authErrorMessage(failure, "session")
+            : "This reset link is invalid or has expired. Request a new one.",
     }
   }
-  return { configured: true, sessionReady: true, email: data.user.email ?? null, message: null }
 }

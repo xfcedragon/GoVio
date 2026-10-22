@@ -1,11 +1,46 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { authLinkErrorCode, destinationAfterAuth, isExpiredAuthFailure, isSupabaseConfigured } from "@/lib/auth"
+import {
+  asAuthFailure,
+  authLinkErrorCode,
+  destinationAfterAuth,
+  isExpiredAuthFailure,
+  isSupabaseConfigured,
+  sessionFailure,
+  type AuthFailure,
+} from "@/lib/auth"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const OTP_TYPES = new Set(["signup", "invite", "magiclink", "recovery", "email_change", "email"])
 
+function privateRedirect(url: URL) {
+  const response = NextResponse.redirect(url)
+  response.headers.set("cache-control", "private, no-cache, no-store, must-revalidate, max-age=0")
+  return response
+}
+
 function loginError(origin: string, code: "callback" | "expired" | "network" | "config" | "unconfigured") {
-  return NextResponse.redirect(new URL(`/login?error=${code}`, origin))
+  return privateRedirect(new URL(`/login?error=${code}`, origin))
+}
+
+function callbackFailure(error: unknown): "expired" | "network" | "config" | "callback" {
+  const failure = asAuthFailure(error)
+  if (isExpiredAuthFailure(failure)) return "expired"
+  const kind = sessionFailure(failure)
+  if (kind === "network") return "network"
+  if (kind === "config") return "config"
+  return "callback"
+}
+
+async function finishExchange(
+  result: Promise<{ error: AuthFailure | null }>,
+): Promise<"ok" | "expired" | "network" | "config" | "callback"> {
+  try {
+    const { error } = await result
+    if (!error) return "ok"
+    return callbackFailure(error)
+  } catch (error) {
+    return callbackFailure(error)
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -28,27 +63,23 @@ export async function GET(request: NextRequest) {
   if (linkError) return loginError(url.origin, linkError)
 
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) return NextResponse.redirect(new URL(next, url.origin))
-    if (isExpiredAuthFailure(error)) return loginError(url.origin, "expired")
-    const message = (error.message ?? "").toLowerCase()
-    if (message.includes("fetch") || message.includes("network")) return loginError(url.origin, "network")
-    return loginError(url.origin, "callback")
+    const outcome = await finishExchange(supabase.auth.exchangeCodeForSession(code))
+    if (outcome === "ok") return privateRedirect(new URL(next, url.origin))
+    return loginError(url.origin, outcome)
   }
 
   if (tokenHash && type && OTP_TYPES.has(type)) {
-    const { error } = await supabase.auth.verifyOtp({
-      type: type as "signup" | "invite" | "magiclink" | "recovery" | "email_change" | "email",
-      token_hash: tokenHash,
-    })
-    if (!error) {
+    const outcome = await finishExchange(
+      supabase.auth.verifyOtp({
+        type: type as "signup" | "invite" | "magiclink" | "recovery" | "email_change" | "email",
+        token_hash: tokenHash,
+      }),
+    )
+    if (outcome === "ok") {
       const destination = type === "recovery" ? destinationAfterAuth(requested || "/reset-password") : next
-      return NextResponse.redirect(new URL(destination, url.origin))
+      return privateRedirect(new URL(destination, url.origin))
     }
-    if (isExpiredAuthFailure(error)) return loginError(url.origin, "expired")
-    const message = (error.message ?? "").toLowerCase()
-    if (message.includes("fetch") || message.includes("network")) return loginError(url.origin, "network")
-    return loginError(url.origin, "callback")
+    return loginError(url.origin, outcome)
   }
 
   return loginError(url.origin, "callback")

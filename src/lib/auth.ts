@@ -313,6 +313,10 @@ export function authErrorMessage(error: AuthFailure, intent: "sign-in" | "sign-u
   if (code === "invalid_credentials" || message.includes("invalid login credentials") || message.includes("invalid email or password")) {
     return "Email or password is incorrect."
   }
+  // A stale cookie is not an expired mail link. otp_expired stays on the link message.
+  if (intent === "session" && failure === "expired" && code !== "otp_expired") {
+    return LOGIN_ERRORS.session ?? "Your session has expired. Sign in again."
+  }
   if (failure === "expired" || code === "otp_expired") {
     return "This link has expired. Request a new one."
   }
@@ -339,4 +343,86 @@ export function isDashboardPath(pathname: string): boolean {
 
 export function isSignedInEntryPath(pathname: string): boolean {
   return pathname === "/login" || pathname === "/signup"
+}
+
+export function asAuthFailure(error: unknown): AuthFailure {
+  if (typeof error === "object" && error !== null) {
+    const record = error as AuthFailure
+    return {
+      message: typeof record.message === "string" ? record.message : undefined,
+      code: typeof record.code === "string" ? record.code : undefined,
+      status: typeof record.status === "number" ? record.status : undefined,
+      name: typeof record.name === "string" ? record.name : undefined,
+    }
+  }
+  return { message: "Failed to fetch", status: 0, name: "TypeError" }
+}
+
+/** Login query code for a session problem. Mail-link expiry stays `expired`. */
+export function loginCodeForSessionFailure(failure: SessionFailure | null): "network" | "session" | "config" | null {
+  if (failure === "expired") return "session"
+  if (failure === "network" || failure === "config") return failure
+  return null
+}
+
+export type ProtectedRouteDecision = {
+  action: "continue" | "redirect"
+  pathname: string
+  search: string
+  hash: string
+}
+
+function splitDestination(value: string): { pathname: string; search: string; hash: string } {
+  const hashAt = value.indexOf("#")
+  const hash = hashAt === -1 ? "" : value.slice(hashAt)
+  const beforeHash = hashAt === -1 ? value : value.slice(0, hashAt)
+  const queryAt = beforeHash.indexOf("?")
+  const pathname = (queryAt === -1 ? beforeHash : beforeHash.slice(0, queryAt)) || "/"
+  const search = queryAt === -1 ? "" : beforeHash.slice(queryAt)
+  return { pathname, search, hash }
+}
+
+/**
+ * Where the proxy sends this request. Unconfigured installs stay on the ledger.
+ * Unsigned dashboard visits go to /login?next=<same-origin path>. Signed-in
+ * visits to /login and /signup follow a safe next path. External and
+ * protocol-relative next values fall back to /.
+ */
+export function protectedRouteDecision(input: {
+  configured: boolean
+  pathname: string
+  search: string
+  next: string | null
+  userId: string | null
+  failure: SessionFailure | null
+}): ProtectedRouteDecision {
+  const stay: ProtectedRouteDecision = {
+    action: "continue",
+    pathname: input.pathname,
+    search: input.search,
+    hash: "",
+  }
+  if (!input.configured) return stay
+  if (input.pathname.startsWith("/api/") || input.pathname.startsWith("/auth/")) return stay
+
+  const signedIn = Boolean(input.userId)
+  if (isDashboardPath(input.pathname) && !signedIn) {
+    const params = new URLSearchParams()
+    const code = loginCodeForSessionFailure(input.failure)
+    if (code) params.set("error", code)
+    const nextTarget = safeNextPath(`${input.pathname}${input.search}`)
+    if (nextTarget) params.set("next", nextTarget)
+    return {
+      action: "redirect",
+      pathname: "/login",
+      search: params.size ? `?${params.toString()}` : "",
+      hash: "",
+    }
+  }
+
+  if (signedIn && isSignedInEntryPath(input.pathname)) {
+    return { action: "redirect", ...splitDestination(destinationAfterAuth(input.next)) }
+  }
+
+  return stay
 }

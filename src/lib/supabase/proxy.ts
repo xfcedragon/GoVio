@@ -1,12 +1,9 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import {
-  destinationAfterAuth,
-  isDashboardPath,
-  isSignedInEntryPath,
   isSupabaseConfigured,
+  protectedRouteDecision,
   publicSupabaseConfig,
-  safeNextPath,
   sessionFailure,
 } from "@/lib/auth"
 
@@ -27,10 +24,17 @@ function copySession(from: NextResponse, to: NextResponse) {
   return to
 }
 
-function redirectWithSession(request: NextRequest, sessionResponse: NextResponse, pathname: string, search: string) {
+function redirectWithSession(
+  request: NextRequest,
+  sessionResponse: NextResponse,
+  pathname: string,
+  search: string,
+  hash: string,
+) {
   const url = request.nextUrl.clone()
   url.pathname = pathname
   url.search = search
+  url.hash = hash
   return copySession(sessionResponse, NextResponse.redirect(url))
 }
 
@@ -76,21 +80,16 @@ export async function updateSession(request: NextRequest) {
     failure = sessionFailure({ message: record.message, name: record.name }) ?? "network"
   }
 
-  const pathname = request.nextUrl.pathname
-  if (pathname.startsWith("/api/") || pathname.startsWith("/auth/")) return supabaseResponse
-
-  if (isDashboardPath(pathname) && !userId) {
-    const params = new URLSearchParams()
-    if (failure) params.set("error", failure)
-    const nextTarget = safeNextPath(`${pathname}${request.nextUrl.search}`)
-    if (nextTarget && nextTarget !== "/") params.set("next", nextTarget)
-    return redirectWithSession(request, supabaseResponse, "/login", params.size ? `?${params.toString()}` : "")
-  }
-
-  if (userId && isSignedInEntryPath(pathname)) {
-    const next = destinationAfterAuth(request.nextUrl.searchParams.get("next"))
-    const destination = new URL(next, request.url)
-    return redirectWithSession(request, supabaseResponse, destination.pathname, destination.search)
+  const decision = protectedRouteDecision({
+    configured: true,
+    pathname: request.nextUrl.pathname,
+    search: request.nextUrl.search,
+    next: request.nextUrl.searchParams.get("next"),
+    userId,
+    failure,
+  })
+  if (decision.action === "redirect") {
+    return redirectWithSession(request, supabaseResponse, decision.pathname, decision.search, decision.hash)
   }
 
   return supabaseResponse
