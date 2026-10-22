@@ -386,7 +386,10 @@ export function VehicleView() {
             ) : null}
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">The year filter uses the date on this device. Totals appear once that date is available.</p>
+          <section id="expenses" className="rounded-md border border-border bg-card px-3 py-3">
+            <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Expenses</h2>
+            <p className="mt-2 text-sm text-muted-foreground">The year filter uses the date on this device. Totals appear once that date is available.</p>
+          </section>
         )}
 
         <section className="rounded-md border border-border bg-card">
@@ -723,7 +726,12 @@ export function VehicleView() {
             Wear estimate {summary.wear.cost === null ? "not calculated" : formatCad(summary.wear.cost)} on {summary.wear.baseLabel}. It is excluded from the claimed total. Photos and the ledger exist only in this browser.
           </p>
         </article>
-      ) : null}
+      ) : (
+        <article id="annual-summary" className="rounded-md border border-border bg-card px-3 py-3">
+          <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Reports</h2>
+          <p className="mt-2 text-sm text-muted-foreground">The year filter uses the date on this device. The annual report appears once that date is available.</p>
+        </article>
+      )}
 
       <VehicleDialog
         open={vehicleEditor !== "closed"}
